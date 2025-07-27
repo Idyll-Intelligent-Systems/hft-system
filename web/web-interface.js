@@ -61,6 +61,15 @@ class WebInterface {
         });
 
         // API routes
+        this.app.get('/api/health', (req, res) => {
+            res.json({
+                status: 'healthy',
+                uptime: process.uptime(),
+                timestamp: Date.now(),
+                version: '1.0.0'
+            });
+        });
+
         this.app.get('/api/status', (req, res) => {
             res.json({
                 status: 'RUNNING',

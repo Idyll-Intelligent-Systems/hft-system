@@ -115,7 +115,7 @@ pip install numpy pandas scikit-learn tensorflow torch jupyter matplotlib seabor
 
 REM Create necessary directories
 echo [INFO] Creating project directories...
-if not exist "%USERPROFILE%\hft-logs" mkdir "%USERPROFILE%\hft-logs"
+if not exist "logs" mkdir "logs"
 if not exist "%USERPROFILE%\hft-data" mkdir "%USERPROFILE%\hft-data"
 if not exist "%USERPROFILE%\hft-backups" mkdir "%USERPROFILE%\hft-backups"
 if not exist "%USERPROFILE%\.hft-config" mkdir "%USERPROFILE%\.hft-config"
@@ -125,7 +125,7 @@ echo [INFO] Setting up environment variables...
 (
 echo # Idyll HFT System Environment Variables
 echo set HFT_HOME=%CD%
-echo set HFT_LOGS=%USERPROFILE%\hft-logs
+echo set HFT_LOGS=%CD%\logs
 echo set HFT_DATA=%USERPROFILE%\hft-data
 echo set HFT_BACKUPS=%USERPROFILE%\hft-backups
 echo set HFT_CONFIG=%USERPROFILE%\.hft-config
@@ -196,7 +196,7 @@ echo echo Starting MongoDB...
 echo net start MongoDB
 echo if %%errorLevel%% neq 0 (
 echo     echo MongoDB service not found, starting manually...
-echo     mongod --dbpath="%USERPROFILE%\mongodb-data" --logpath="%USERPROFILE%\hft-logs\mongodb.log"
+echo     mongod --dbpath="%USERPROFILE%\mongodb-data" --logpath="logs\mongodb.log"
 echo ^)
 ) > "%CD%\scripts\start-mongodb.bat"
 
@@ -274,6 +274,6 @@ echo 2. Run the build script: scripts\build-system.bat
 echo 3. Start the system: scripts\run-system.bat
 echo.
 echo [WARNING] Please restart your command prompt to ensure all environment variables are loaded.
-echo [INFO] Installation log saved to: %USERPROFILE%\hft-installation.log
+echo [INFO] Installation log saved to: logs\hft-installation.log
 
 pause

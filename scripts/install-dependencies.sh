@@ -493,17 +493,17 @@ fi
 
 # Create necessary directories
 print_status "Creating project directories..."
-mkdir -p ~/hft-logs
+mkdir -p logs
 mkdir -p ~/hft-data
 mkdir -p ~/hft-backups
 mkdir -p ~/.hft-config
 
 # Set up environment variables
 print_status "Setting up environment variables..."
-cat > ~/.hft-env << 'EOF'
+cat > ~/.hft-env << EOF
 # Idyll HFT System Environment Variables
-export HFT_HOME="$HOME/hft-system"
-export HFT_LOGS="$HOME/hft-logs"
+export HFT_HOME="$(pwd)"
+export HFT_LOGS="$(pwd)/logs"
 export HFT_DATA="$HOME/hft-data"
 export HFT_BACKUPS="$HOME/hft-backups"
 export HFT_CONFIG="$HOME/.hft-config"
@@ -627,4 +627,4 @@ if [[ "$MACHINE" == "Linux" ]] && groups $USER | grep -q docker; then
     print_warning "You've been added to the docker group. Please log out and log back in for the changes to take effect."
 fi
 
-print_status "Installation log saved to: ~/hft-installation.log"
+print_status "Installation log saved to: logs/hft-installation.log"

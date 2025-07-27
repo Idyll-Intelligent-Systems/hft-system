@@ -131,7 +131,7 @@ start_mongodb() {
         else
             # Manual start
             print_info "Starting MongoDB manually..."
-            mongod --dbpath="$HOME/mongodb-data" --logpath="$HOME/hft-logs/mongodb.log" --fork
+            mongod --dbpath="$HOME/mongodb-data" --logpath="logs/mongodb.log" --fork
             wait_for_service "MongoDB" 27017 30
         fi
     fi
@@ -166,7 +166,7 @@ start_redis() {
         else
             # Manual start
             print_info "Starting Redis manually..."
-            redis-server --daemonize yes --logfile "$HOME/hft-logs/redis.log"
+            redis-server --daemonize yes --logfile "logs/redis.log"
             wait_for_service "Redis" 6379 30
         fi
     fi
@@ -201,7 +201,7 @@ start_influxdb() {
         else
             # Manual start
             print_info "Starting InfluxDB manually..."
-            influxd --config=/etc/influxdb/influxdb.conf > "$HOME/hft-logs/influxdb.log" 2>&1 &
+            influxd --config=/etc/influxdb/influxdb.conf > "logs/influxdb.log" 2>&1 &
             wait_for_service "InfluxDB" 8086 30
         fi
     fi
@@ -296,8 +296,8 @@ start_hft_system() {
     cd build/production
     
     # Check if system is already running
-    if is_port_in_use 3001; then
-        print_warning "HFT system appears to be already running on port 3001"
+    if is_port_in_use 3000; then
+        print_warning "HFT system appears to be already running on port 3000"
         cd ../..
         return 0
     fi
@@ -320,7 +320,7 @@ start_hft_system() {
     cd ../..
     
     # Wait for the system to start
-    wait_for_service "HFT System" 3001 60
+    wait_for_service "HFT System" 3000 60
 }
 
 # Function to start the web dashboard
@@ -420,10 +420,10 @@ check_system_health() {
         echo "❌ Web Dashboard: http://localhost:3000 (not accessible)"
     fi
     
-    if curl -s -f http://localhost:3001/api/health >/dev/null 2>&1; then
-        echo "✅ API Endpoint: http://localhost:3001"
+    if curl -s -f http://localhost:3000/api/health >/dev/null 2>&1; then
+        echo "✅ API Endpoint: http://localhost:3000/api"
     else
-        echo "❌ API Endpoint: http://localhost:3001 (not accessible)"
+        echo "❌ API Endpoint: http://localhost:3000/api (not accessible)"
     fi
     
     # System resources
@@ -536,7 +536,7 @@ main() {
     echo ""
     print_info "System Status:"
     echo "  📊 Web Dashboard: http://localhost:3000"
-    echo "  🔌 API Endpoint: http://localhost:3001"
+    echo "  🔌 API Endpoint: http://localhost:3000/api"
     echo "  📈 System Monitoring: ./monitor-system.sh"
     echo "  🛑 Stop System: ./stop-system.sh"
     echo ""

@@ -130,7 +130,7 @@ class StrategyAgent extends EventEmitter {
     }
 
     generateMomentumSignal(features) {
-        const { price_momentum, volume_momentum, rsi, macd } = features;
+        const { price_momentum, volume_momentum, rsi } = features;
 
         // Simple momentum strategy logic
         let signal = 0;
@@ -157,7 +157,7 @@ class StrategyAgent extends EventEmitter {
     }
 
     generateMeanReversionSignal(features) {
-        const { bollinger_position, rsi_divergence, volatility } = features;
+        const { bollinger_position, rsi_divergence } = features;
 
         let signal = 0;
         let confidence = 0;
@@ -304,7 +304,6 @@ class StrategyAgent extends EventEmitter {
 
     updateMarketRegime() {
         // Simulate market regime detection
-        const regimes = this.marketRegimeDetector.regimes;
         const currentTime = Date.now();
 
         // Simple regime detection based on volatility and trend

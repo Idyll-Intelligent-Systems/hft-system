@@ -744,12 +744,13 @@ class HFTTestingFramework extends EventEmitter {
 // Export for use in main system
 module.exports = HFTTestingFramework;
 
+// Run tests function
+async function runTests() {
+    const testFramework = new HFTTestingFramework();
+    await testFramework.runComprehensiveTests();
+}
+
 // Run tests if called directly
 if (require.main === module) {
-    async function runTests() {
-        const testFramework = new HFTTestingFramework();
-        await testFramework.runComprehensiveTests();
-    }
-
     runTests().catch(console.error);
 }

@@ -199,17 +199,17 @@ brew install \
 
 # Create necessary directories
 print_status "Creating project directories..."
-mkdir -p ~/hft-logs
+mkdir -p logs
 mkdir -p ~/hft-data
 mkdir -p ~/hft-backups
 mkdir -p ~/.hft-config
 
 # Set up environment variables
 print_status "Setting up environment variables..."
-cat > ~/.hft-env << 'EOF'
+cat > ~/.hft-env << EOF
 # Idyll HFT System Environment Variables for macOS
-export HFT_HOME="$HOME/hft-system"
-export HFT_LOGS="$HOME/hft-logs"
+export HFT_HOME="$(pwd)"
+export HFT_LOGS="$(pwd)/logs"
 export HFT_DATA="$HOME/hft-data"
 export HFT_BACKUPS="$HOME/hft-backups"
 export HFT_CONFIG="$HOME/.hft-config"
@@ -485,7 +485,7 @@ echo "2. Run the build script: ./scripts/build-system.sh"
 echo "3. Start the system: ./scripts/run-system.sh"
 
 print_warning "Please restart your terminal to ensure all environment variables are loaded."
-print_status "Installation log saved to: ~/hft-installation.log"
+print_status "Installation log saved to: logs/hft-installation.log"
 
 # Check for Apple Silicon specific recommendations
 if [[ "$arch_type" == "arm64" ]]; then

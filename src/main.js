@@ -337,7 +337,7 @@ async function main() {
             cluster.fork();
         }
 
-        cluster.on('exit', (worker, code, signal) => {
+        cluster.on('exit', worker => {
             console.log(`Worker ${worker.process.pid} died`);
             cluster.fork(); // Restart worker
         });

@@ -56,8 +56,8 @@ net start MongoDB >nul 2>&1
 if %errorLevel% neq 0 (
     echo [INFO] MongoDB service not available, starting manually...
     if not exist "%USERPROFILE%\mongodb-data" mkdir "%USERPROFILE%\mongodb-data"
-    if not exist "%USERPROFILE%\hft-logs" mkdir "%USERPROFILE%\hft-logs"
-    start /b mongod --dbpath="%USERPROFILE%\mongodb-data" --logpath="%USERPROFILE%\hft-logs\mongodb.log"
+    if not exist "logs" mkdir "logs"
+    start /b mongod --dbpath="%USERPROFILE%\mongodb-data" --logpath="logs\mongodb.log"
     call :wait_for_service "MongoDB" 27017
 ) else (
     echo [SUCCESS] MongoDB is running

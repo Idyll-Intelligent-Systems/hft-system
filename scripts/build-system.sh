@@ -84,20 +84,24 @@ mkdir -p tmp
 print_status "Installing Node.js dependencies..."
 npm ci --production=false
 
-# Install TypeScript if not globally available
-if ! command -v tsc &> /dev/null; then
-    print_status "Installing TypeScript locally..."
-    npm install --save-dev typescript @types/node
-fi
+# Check if this is a TypeScript or JavaScript project
+TS_FILES=$(find src -name "*.ts" -type f 2>/dev/null | wc -l)
 
-# Compile TypeScript
-print_status "Compiling TypeScript..."
-if [[ -f "tsconfig.json" ]]; then
-    npx tsc
-    print_success "TypeScript compilation completed"
-else
-    print_warning "tsconfig.json not found, creating default configuration..."
-    cat > tsconfig.json << 'EOF'
+if [[ $TS_FILES -gt 0 ]]; then
+    # Install TypeScript if not globally available
+    if ! command -v tsc &> /dev/null; then
+        print_status "Installing TypeScript locally..."
+        npm install --save-dev typescript @types/node
+    fi
+
+    # Compile TypeScript
+    print_status "Compiling TypeScript..."
+    if [[ -f "tsconfig.json" ]]; then
+        npx tsc
+        print_success "TypeScript compilation completed"
+    else
+        print_warning "tsconfig.json not found, creating default configuration..."
+        cat > tsconfig.json << 'EOF'
 {
   "compilerOptions": {
     "target": "ES2022",
@@ -130,7 +134,10 @@ else
   ]
 }
 EOF
-    npx tsc
+        npx tsc
+    fi
+else
+    print_status "JavaScript project detected - skipping TypeScript compilation"
 fi
 
 # Build native modules if any
@@ -236,7 +243,9 @@ mkdir -p build/production
 if [[ -d "dist" ]] && [[ -n "$(ls -A dist 2>/dev/null)" ]]; then
     cp -r dist/* build/production/
 else
-    print_status "No dist directory found or empty - skipping compiled file copy"
+    print_status "No dist directory found or empty - copying source files directly"
+    # Copy JavaScript source files directly since this is a JS project
+    cp -r src build/production/
 fi
 
 # Copy configuration files
@@ -249,6 +258,10 @@ if [[ -d "web/public" ]]; then
 fi
 if [[ -d "web/dist" ]]; then
     cp -r web/dist/* build/production/web/ 2>/dev/null || true
+fi
+# Copy web-interface.js file if it exists
+if [[ -f "web/web-interface.js" ]]; then
+    cp web/web-interface.js build/production/web/
 fi
 
 # Copy package.json for production
@@ -456,9 +469,9 @@ if [[ "$MACHINE" == "Mac" ]]; then
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>$HOME/hft-logs/hft-system.log</string>
+    <string>/workspaces/hft-system/logs/hft-system.log</string>
     <key>StandardErrorPath</key>
-    <string>$HOME/hft-logs/hft-system-error.log</string>
+    <string>/workspaces/hft-system/logs/hft-system-error.log</string>
 </dict>
 </plist>
 EOF
