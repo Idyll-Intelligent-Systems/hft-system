@@ -2,13 +2,14 @@
 1. Find all the research available on HFT, Agentic AI, Performance optimising algorithms and datastructures, parallel computing, compilers, operating systems, computer networks, llms, machine learning algorithms, deep learning, cpu and gpu accelaration, nano second trading technologies, finance and probability statistics, money making strategies in HFT, optimised frontend or UI/UX framework or language for rendering visual graphs and executing trades in realtime without any perceivable latency. Get good grip on all the domains and you should be an expert in each domain.
 2. First explain all the above domains and help me write and develop an automated end to end nano second high frequency trading company from scratch.(Idyll Intelligent Systems/automated-hft) This system should be able to manage by owners and agentic ai for deployments, strategy planning, monitoring, alerts, bug fix, new requirement analyst, solution provider, code executioner and code generator.
 3. This system can be interacted by users, owners, agentic ai, llms, deep learning models, other companies via api/web-ui
-3. Explain all the components involved our nano second autonomous hft system and help me build a production ready system from scratch.
-4. Write a SRS document with all the components UML diagrams,system architecture, technology stack, thesis paper, ppt slides for explaining the system in laymen terms, investor pitch slides with best visual images for better understanding
+4. Explain all the components involved in our nano second autonomous hft system and help me build a production ready system from scratch. Write a SRS document with all the components and UML diagrams for better understanding,system flow, technology stack, thesis paper, ppt slides for explaining the system in laymen terms, investor pitch slides with best visual images for better understanding
 5. Please help me understand the value of my company, investment to build the company from scratch and how to price the customers.
 6. My company should be user facing, business client and enterprize grade hft.
 7. Use smart and hardwork based approach to tackle this problem and make a profitable company from scratch.
 8. Trading can be performed in any region stock exchange, crypto exchange, mfs etc. that is all global markets should be available to trade in our system
-8. Create this end to end nano second automated HFT system with structured, clean and expandable code.
+9. Create this end to end nano second automated HFT system with structured, clean and expandable code.
+10. Test this system with recent 2020-2024 data in two phases, covid and normal phase seperatly to showcase reliability and robustness of our system, show this as an interaction test in our web ui for demo purposes.
+
 
 
 
