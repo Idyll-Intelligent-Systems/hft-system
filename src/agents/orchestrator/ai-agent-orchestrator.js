@@ -377,11 +377,11 @@ class AIAgentOrchestrator extends EventEmitter {
 
         // Use confidence from the signal data or fallback to input confidence
         const strategyConfidence = strategySignal.confidence || strategyInput.confidence || 0.5;
-        const executionConfidence = executionConditions.confidence || executionInput.confidence || 0.5;
+        const executionConfidence =
+            executionConditions.confidence || executionInput.confidence || 0.5;
 
         const combinedConfidence =
-            (strategyConfidence * strategyWeight +
-                executionConfidence * executionWeight) /
+            (strategyConfidence * strategyWeight + executionConfidence * executionWeight) /
             (strategyWeight + executionWeight);
 
         if (combinedConfidence >= this.coordinationEngine.votingThreshold) {
@@ -438,7 +438,7 @@ class AIAgentOrchestrator extends EventEmitter {
         console.log('🚨 COMPLIANCE OVERRIDE - Stopping all trading operations');
 
         // Stop all trading agents
-        for (const [agentType, agent] of this.agents) {
+        for (const [, agent] of this.agents) {
             if (agent.emergencyStop) {
                 await agent.emergencyStop();
             }
@@ -489,7 +489,7 @@ class AIAgentOrchestrator extends EventEmitter {
     }
 
     updateAgentPerformanceMetrics() {
-        for (const [agentType, state] of this.agentStates) {
+        for (const [agentType] of this.agentStates) {
             const agent = this.agents.get(agentType);
             if (agent && agent.getPerformanceMetrics) {
                 const metrics = agent.getPerformanceMetrics();
@@ -554,7 +554,7 @@ class AIAgentOrchestrator extends EventEmitter {
         console.log('🚨 EMERGENCY NOTIFICATION:', emergencyData);
 
         // Notify all agents
-        for (const [agentType, agent] of this.agents) {
+        for (const [, agent] of this.agents) {
             if (agent.handleEmergency) {
                 await agent.handleEmergency(emergencyData);
             }

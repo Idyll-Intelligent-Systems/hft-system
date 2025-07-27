@@ -175,7 +175,7 @@ class ExecutionAgent extends EventEmitter {
     }
 
     createOrderSender(venue) {
-        return async order => {
+        return async () => {
             const sendStart = performance.now();
 
             // Simulate order transmission latency
@@ -288,7 +288,7 @@ class ExecutionAgent extends EventEmitter {
         };
     }
 
-    getEligibleVenues(order) {
+    getEligibleVenues() {
         return this.config.venues.filter(venue => {
             const connection = this.venueConnections.get(venue);
             return connection && connection.status === 'connected';
@@ -532,7 +532,7 @@ class ExecutionAgent extends EventEmitter {
         };
     }
 
-    async analyzeMarketConditions(symbol) {
+    async analyzeMarketConditions() {
         // Simulate market condition analysis
         return {
             volatility: Math.random() * 0.05,

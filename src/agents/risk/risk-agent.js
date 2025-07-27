@@ -4,7 +4,6 @@
  */
 
 const EventEmitter = require('events');
-const { performance } = require('perf_hooks');
 
 class RiskAgent extends EventEmitter {
     constructor(config = {}) {
@@ -279,7 +278,7 @@ class RiskAgent extends EventEmitter {
         return positionRisk;
     }
 
-    generateRiskRecommendations(portfolioRisk, positionRisks) {
+    generateRiskRecommendations(portfolioRisk) {
         const recommendations = [];
 
         // Daily loss recommendations
@@ -381,7 +380,6 @@ class RiskAgent extends EventEmitter {
         // Simplified VaR calculation using parametric method
         const portfolioValue = this.portfolioMetrics.totalValue;
         const portfolioVolatility = 0.15; // Assume 15% annual volatility
-        const timeHorizon = 1; // 1 day
         const confidence95 = 1.645; // 95% confidence z-score
         const confidence99 = 2.326; // 99% confidence z-score
 
@@ -475,20 +473,20 @@ class RiskAgent extends EventEmitter {
     async calculateCreditRisk(features) {
         // Simple credit risk calculation based on counterparty rating and exposure
         const { counterparty_rating, exposure, collateral } = features;
-        
+
         // Convert rating to risk score (AAA=0.1, BBB=0.5, CCC=0.9)
         const ratingRisk = counterparty_rating || 0.5;
         const exposureRisk = Math.min(exposure / 1000000, 1.0); // Normalize exposure to 1M
         const collateralProtection = Math.min(collateral / exposure, 1.0);
-        
+
         const creditRisk = (ratingRisk + exposureRisk) * (1 - collateralProtection * 0.5);
-        
+
         return {
             creditScore: Math.min(1.0, creditRisk),
             rating: counterparty_rating,
             exposure: exposure,
             collateral: collateral,
-            recommendation: creditRisk > 0.7 ? 'REDUCE_COUNTERPARTY_EXPOSURE' : 'ACCEPTABLE'
+            recommendation: creditRisk > 0.7 ? 'REDUCE_COUNTERPARTY_EXPOSURE' : 'ACCEPTABLE',
         };
     }
 
@@ -608,7 +606,7 @@ class RiskAgent extends EventEmitter {
 
         // Identify most leveraged positions for closure
         const leveragedPositions = Array.from(this.currentPositions.entries())
-            .filter(([symbol, position]) => position.leverage > 2.0)
+            .filter(([, position]) => position.leverage > 2.0)
             .sort((a, b) => b[1].leverage - a[1].leverage);
 
         this.emit('leverageReduction', {

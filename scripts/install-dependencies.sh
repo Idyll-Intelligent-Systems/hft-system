@@ -100,7 +100,26 @@ print_status "Starting Idyll HFT System dependency installation..."
 print_status "Updating system packages..."
 if [[ "$MACHINE" == "Linux" ]]; then
     apt_install update -y
-    apt_install upgrade -y
+    
+    # Handle broken packages first (common in container environments)
+    print_status "Checking for broken packages..."
+    if ! sudo dpkg --configure -a 2>/dev/null; then
+        print_warning "Found broken packages, attempting to fix..."
+        
+        # Fix the pcp package issue specifically
+        if dpkg -l | grep -q "^ii.*pcp"; then
+            print_status "Fixing pcp package configuration..."
+            sudo dpkg --remove --force-remove-reinstreq pcp 2>/dev/null || true
+        fi
+        
+        # Clean up any other broken packages
+        sudo apt-get -f install -y || true
+        sudo dpkg --configure -a || true
+    fi
+    
+    # Perform upgrade with automatic handling of problematic packages
+    print_status "Upgrading system packages..."
+    DEBIAN_FRONTEND=noninteractive apt_install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade -y
 elif [[ "$MACHINE" == "Mac" ]]; then
     # Check if Homebrew is installed
     if ! command -v brew &> /dev/null; then
@@ -401,6 +420,13 @@ fi
 # Install Docker and Docker Compose
 print_status "Installing Docker..."
 if [[ "$MACHINE" == "Linux" ]]; then
+    # Remove any conflicting Docker packages first
+    print_status "Removing conflicting Docker packages..."
+    sudo apt-get remove -y docker docker-engine docker.io containerd runc moby-engine moby-cli moby-buildx moby-compose 2>/dev/null || true
+    
+    # Clean up conflicting packages that might prevent Docker installation
+    sudo apt-get autoremove -y || true
+    
     # Add Docker's official GPG key
     curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
     
@@ -408,7 +434,18 @@ if [[ "$MACHINE" == "Linux" ]]; then
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     
     sudo apt-get update
-    sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+    
+    # Install Docker with conflict resolution
+    print_status "Installing Docker CE..."
+    if ! sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin; then
+        print_warning "Standard Docker installation failed, trying alternative approach..."
+        
+        # Remove any problematic moby packages that might conflict
+        sudo apt-get remove -y moby-tini 2>/dev/null || true
+        
+        # Try installing again
+        sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+    fi
     
     # Add user to docker group
     sudo usermod -aG docker $USER
@@ -438,14 +475,13 @@ pip3 install \
 # Install system monitoring tools
 print_status "Installing system monitoring tools..."
 if [[ "$MACHINE" == "Linux" ]]; then
-    sudo apt-get install -y \
-        htop \
-        iotop \
-        nethogs \
-        tcpdump \
-        wireshark-common \
-        sysstat \
-        dstat
+    # Don't install dstat (pcp) in container environments due to systemd conflicts
+    if [[ -f /.dockerenv ]] || ! systemctl is-system-running >/dev/null 2>&1; then
+        print_status "Skipping dstat/pcp - systemd not available in container"
+        apt_install install -y htop iotop nethogs tcpdump wireshark-common sysstat
+    else
+        apt_install install -y htop iotop nethogs tcpdump wireshark-common sysstat dstat
+    fi
 elif [[ "$MACHINE" == "Mac" ]]; then
     brew install \
         htop \
