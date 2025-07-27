@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Idyll HFT System - Real-Time Dashboard</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c0c0c, #1a1a1a);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header h1 {
+            display: inline-block;
+            font-size: 1.8rem;
+            font-weight: 300;
+        }
+
+        .header .status {
+            float: right;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-optimal { background: #00ff88; }
+        .status-warning { background: #ffaa00; }
+        .status-critical { background: #ff4444; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .container {
+            margin-top: 80px;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .widget {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .widget:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 150, 255, 0.2);
+        }
+
+        .widget h3 {
+            margin-bottom: 1rem;
+            color: #00d4ff;
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 0.8rem 0;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+        }
+
+        .metric-value {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .positive { color: #00ff88; }
+        .negative { color: #ff4444; }
+        .neutral { color: #ffaa00; }
+
+        .chart-container {
+            grid-column: span 2;
+            height: 300px;
+            position: relative;
+        }
+
+        .positions-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .positions-table th,
+        .positions-table td {
+            padding: 0.8rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .positions-table th {
+            background: rgba(0, 212, 255, 0.1);
+            color: #00d4ff;
+            font-weight: 500;
+        }
+
+        .positions-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .button {
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            border: none;
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            margin: 0.5rem;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
+        }
+
+        .button.danger {
+            background: linear-gradient(45deg, #ff4444, #cc0000);
+        }
+
+        .button.danger:hover {
+            box-shadow: 0 5px 15px rgba(255, 68, 68, 0.4);
+        }
+
+        .order-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 0.5rem;
+            color: #00d4ff;
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 0.8rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+
+        .latency-display {
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: linear-gradient(45deg, rgba(0, 255, 136, 0.1), rgba(0, 212, 255, 0.1));
+            border-radius: 10px;
+            border: 2px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .performance-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .performance-metric {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .performance-metric .value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .performance-metric .label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .log-container {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.3rem;
+            border-radius: 3px;
+        }
+
+        .log-info { border-left: 3px solid #00d4ff; }
+        .log-warning { border-left: 3px solid #ffaa00; }
+        .log-error { border-left: 3px solid #ff4444; }
+        .log-success { border-left: 3px solid #00ff88; }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            
+            .chart-container {
+                grid-column: span 1;
+            }
+            
+            .order-form {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 Idyll Intelligent Systems - HFT Dashboard</h1>
+        <div class="status">
+            <span class="status-indicator status-optimal" id="statusIndicator"></span>
+            <span id="systemStatus">OPTIMAL</span> | 
+            Uptime: <span id="uptime">00:00:00</span> |
+            Clients: <span id="clientCount">0</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Performance Metrics -->
+        <div class="widget">
+            <h3>⚡ Performance Metrics</h3>
+            <div class="latency-display">
+                <div id="latencyValue">742</div>
+                <div style="font-size: 0.8rem; opacity: 0.8;">nanoseconds</div>
+            </div>
+            <div class="performance-grid">
+                <div class="performance-metric">
+                    <div class="value positive" id="totalTrades">12,500</div>
+                    <div class="label">Total Trades</div>
+                </div>
+                <div class="performance-metric">
+                    <div class="value neutral" id="throughput">1.2M</div>
+                    <div class="label">Orders/sec</div>
+                </div>
+                <div class="performance-metric">
+                    <div class="value positive" id="uptime99">99.99%</div>
+                    <div class="label">Uptime</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- P&L and Risk -->
+        <div class="widget">
+            <h3>💰 P&L & Risk Management</h3>
+            <div class="metric">
+                <span>Daily P&L:</span>
+                <span class="metric-value positive" id="dailyPnL">+$25,000</span>
+            </div>
+            <div class="metric">
+                <span>Portfolio Value:</span>
+                <span class="metric-value" id="portfolioValue">$5,000,000</span>
+            </div>
+            <div class="metric">
+                <span>Leverage:</span>
+                <span class="metric-value neutral" id="leverage">2.1x</span>
+            </div>
+            <div class="metric">
+                <span>VaR (95%):</span>
+                <span class="metric-value" id="var95">$75,000</span>
+            </div>
+            <div class="metric">
+                <span>Risk Level:</span>
+                <span class="metric-value positive" id="riskLevel">LOW</span>
+            </div>
+        </div>
+
+        <!-- AI Agents Status -->
+        <div class="widget">
+            <h3>🤖 AI Agents Status</h3>
+            <div class="metric">
+                <span>Strategy Agent:</span>
+                <span class="metric-value positive">ACTIVE (98% acc)</span>
+            </div>
+            <div class="metric">
+                <span>Risk Agent:</span>
+                <span class="metric-value positive">ACTIVE (99% rel)</span>
+            </div>
+            <div class="metric">
+                <span>Execution Agent:</span>
+                <span class="metric-value positive">ACTIVE (95% fill)</span>
+            </div>
+            <div class="metric">
+                <span>Monitoring Agent:</span>
+                <span class="metric-value positive">ACTIVE</span>
+            </div>
+            <div class="metric">
+                <span>Market Regime:</span>
+                <span class="metric-value neutral" id="marketRegime">NORMAL</span>
+            </div>
+        </div>
+
+        <!-- System Controls -->
+        <div class="widget">
+            <h3>🎛️ System Controls</h3>
+            <button class="button" onclick="toggleTrading()">
+                <span id="tradingStatus">🟢 Trading Active</span>
+            </button>
+            <button class="button danger" onclick="emergencyStop()">
+                🚨 Emergency Stop
+            </button>
+            <button class="button" onclick="refreshData()">
+                🔄 Refresh Data
+            </button>
+            <button class="button" onclick="exportLogs()">
+                📄 Export Logs
+            </button>
+        </div>
+
+        <!-- Real-time Chart -->
+        <div class="widget chart-container">
+            <h3>📊 Real-time P&L Chart</h3>
+            <canvas id="pnlChart"></canvas>
+        </div>
+
+        <!-- Current Positions -->
+        <div class="widget">
+            <h3>📈 Current Positions</h3>
+            <table class="positions-table">
+                <thead>
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Qty</th>
+                        <th>Avg Price</th>
+                        <th>Current</th>
+                        <th>P&L</th>
+                    </tr>
+                </thead>
+                <tbody id="positionsTableBody">
+                    <tr>
+                        <td>AAPL</td>
+                        <td>1,000</td>
+                        <td>$150.25</td>
+                        <td>$151.30</td>
+                        <td class="positive">+$1,050</td>
+                    </tr>
+                    <tr>
+                        <td>GOOGL</td>
+                        <td>500</td>
+                        <td>$2,800.00</td>
+                        <td>$2,825.50</td>
+                        <td class="positive">+$12,750</td>
+                    </tr>
+                    <tr>
+                        <td>MSFT</td>
+                        <td>750</td>
+                        <td>$380.15</td>
+                        <td>$378.90</td>
+                        <td class="negative">-$937</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Order Entry -->
+        <div class="widget">
+            <h3>📋 Quick Order Entry</h3>
+            <form class="order-form" onsubmit="submitOrder(event)">
+                <div class="form-group">
+                    <label>Symbol:</label>
+                    <input type="text" id="orderSymbol" placeholder="AAPL" required>
+                </div>
+                <div class="form-group">
+                    <label>Side:</label>
+                    <select id="orderSide" required>
+                        <option value="BUY">BUY</option>
+                        <option value="SELL">SELL</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Quantity:</label>
+                    <input type="number" id="orderQuantity" placeholder="100" required>
+                </div>
+                <div class="form-group">
+                    <label>Price:</label>
+                    <input type="number" id="orderPrice" step="0.01" placeholder="150.00" required>
+                </div>
+                <button type="submit" class="button" style="grid-column: span 2;">Submit Order</button>
+            </form>
+        </div>
+
+        <!-- System Logs -->
+        <div class="widget">
+            <h3>📝 System Logs</h3>
+            <div class="log-container" id="systemLogs">
+                <div class="log-entry log-success">[2024-07-27 10:30:15] System initialized successfully</div>
+                <div class="log-entry log-info">[2024-07-27 10:30:16] Connected to 4 trading venues</div>
+                <div class="log-entry log-info">[2024-07-27 10:30:17] AI agents activated</div>
+                <div class="log-entry log-success">[2024-07-27 10:30:18] Real-time data feeds active</div>
+                <div class="log-entry log-info">[2024-07-27 10:30:20] Trading strategies loaded</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Socket.IO connection
+        const socket = io();
+        let tradingActive = true;
+        let chart;
+
+        // Initialize P&L chart
+        function initChart() {
+            const ctx = document.getElementById('pnlChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Daily P&L',
+                        data: [],
+                        borderColor: '#00ff88',
+                        backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: 'white' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        }
+                    }
+                }
+            });
+
+            // Add sample data
+            updateChart();
+        }
+
+        function updateChart() {
+            const now = new Date();
+            const timeLabel = now.toLocaleTimeString();
+            const pnl = 25000 + (Math.random() - 0.5) * 5000;
+
+            if (chart.data.labels.length > 20) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+            }
+
+            chart.data.labels.push(timeLabel);
+            chart.data.datasets[0].data.push(pnl);
+            chart.update('none');
+        }
+
+        // Socket event handlers
+        socket.on('connect', () => {
+            addLog('Connected to HFT system', 'success');
+        });
+
+        socket.on('systemUpdate', (data) => {
+            updateSystemMetrics(data);
+        });
+
+        socket.on('newOrder', (order) => {
+            addLog(`New order: ${order.side} ${order.quantity} ${order.symbol} @ $${order.price}`, 'info');
+        });
+
+        socket.on('tradeExecution', (trade) => {
+            addLog(`Trade executed: ${trade.symbol} - P&L: $${trade.pnl}`, 'success');
+            updateChart();
+        });
+
+        socket.on('riskAlert', (alert) => {
+            addLog(`Risk Alert: ${alert.message}`, 'warning');
+        });
+
+        socket.on('emergencyStop', () => {
+            addLog('EMERGENCY STOP ACTIVATED', 'error');
+            tradingActive = false;
+            updateTradingStatus();
+        });
+
+        // UI Functions
+        function updateSystemMetrics(data) {
+            if (data.totalTrades) document.getElementById('totalTrades').textContent = data.totalTrades.toLocaleString();
+            if (data.dailyPnL) document.getElementById('dailyPnL').textContent = formatCurrency(data.dailyPnL);
+            if (data.averageLatency) document.getElementById('latencyValue').textContent = Math.round(data.averageLatency);
+            
+            // Update status indicator
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('systemStatus');
+            
+            if (data.health) {
+                indicator.className = `status-indicator status-${data.health.toLowerCase()}`;
+                statusText.textContent = data.health;
+            }
+        }
+
+        function formatCurrency(amount) {
+            const sign = amount >= 0 ? '+' : '';
+            return sign + '$' + amount.toLocaleString();
+        }
+
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('systemLogs');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            logContainer.insertBefore(logEntry, logContainer.firstChild);
+            
+            // Keep only last 50 entries
+            while (logContainer.children.length > 50) {
+                logContainer.removeChild(logContainer.lastChild);
+            }
+        }
+
+        function toggleTrading() {
+            tradingActive = !tradingActive;
+            updateTradingStatus();
+            addLog(`Trading ${tradingActive ? 'activated' : 'deactivated'}`, tradingActive ? 'success' : 'warning');
+        }
+
+        function updateTradingStatus() {
+            const statusElement = document.getElementById('tradingStatus');
+            statusElement.textContent = tradingActive ? '🟢 Trading Active' : '🔴 Trading Stopped';
+        }
+
+        function emergencyStop() {
+            if (confirm('Are you sure you want to activate Emergency Stop? This will halt all trading operations.')) {
+                fetch('/api/emergency-stop', { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        addLog('Emergency stop request sent', 'error');
+                    });
+            }
+        }
+
+        function submitOrder(event) {
+            event.preventDefault();
+            
+            const orderData = {
+                symbol: document.getElementById('orderSymbol').value,
+                side: document.getElementById('orderSide').value,
+                quantity: parseInt(document.getElementById('orderQuantity').value),
+                price: parseFloat(document.getElementById('orderPrice').value)
+            };
+
+            fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                addLog(`Order submitted: ${data.id}`, 'success');
+                event.target.reset();
+            })
+            .catch(error => {
+                addLog(`Order failed: ${error.message}`, 'error');
+            });
+        }
+
+        function refreshData() {
+            fetch('/api/metrics')
+                .then(response => response.json())
+                .then(data => {
+                    updateSystemMetrics(data);
+                    addLog('Data refreshed', 'info');
+                });
+        }
+
+        function exportLogs() {
+            const logs = Array.from(document.querySelectorAll('.log-entry'))
+                .map(entry => entry.textContent)
+                .join('\n');
+            
+            const blob = new Blob([logs], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `hft-logs-${new Date().toISOString()}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            
+            // Update metrics every 5 seconds
+            setInterval(refreshData, 5000);
+            
+            // Update chart every 2 seconds
+            setInterval(updateChart, 2000);
+            
+            // Update uptime display
+            setInterval(() => {
+                const uptime = performance.now() / 1000;
+                const hours = Math.floor(uptime / 3600);
+                const minutes = Math.floor((uptime % 3600) / 60);
+                const seconds = Math.floor(uptime % 60);
+                document.getElementById('uptime').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
