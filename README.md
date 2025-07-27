@@ -1,16 +1,16 @@
-Initial Prompt:
-Find all the research available on HFT, Agentic AI, Performance optimising algorithms and datastructures, parallel computing, cpu and gpu accelaration, nano second trading technologies, finance and probability statistics, money making strategies in HFT.
-Get good grip on all the domains mentioned, first explain all the above domains and help me write and develop an end to end nano second high frequency trading company from scratch.(Idyll Intelligent Systems/automated-hft) This system should be able to manage by owners and agentic ai for deployments, strategy planning, monitoring, alerts, bug fix and new requirement analyst and executioner using code generation techniques.
-Explain all the components involved and help me build a production ready system from scratch.
-Write a SRS document with all the components and diagrams, thesis paper, ppt slides for explaining the system in laymen terms.
-Please help me understand the value of my company and how to price the customers.
-My company should be user facing, business client and enterprize grade hft.
-Use smart and hardwork based approach to tackle this problem and make a profitable company from scratch.
-Create an end to end system with structured, clean and expandable code.
+# Initial Problem and Requirements:
+1. Find all the research available on HFT, Agentic AI, Performance optimising algorithms and datastructures, parallel computing, cpu and gpu accelaration, nano second trading technologies, finance and probability statistics, money making strategies in HFT.
+2. Get good grip on all the domains mentioned, first explain all the above domains and help me write and develop an end to end nano second high frequency trading company from scratch.(Idyll Intelligent Systems/automated-hft) This system should be able to manage by owners and agentic ai for deployments, strategy planning, monitoring, alerts, bug fix and new requirement analyst and executioner using code generation techniques.
+3. Explain all the components involved and help me build a production ready system from scratch.
+4. Write a SRS document with all the components and diagrams, thesis paper, ppt slides for explaining the system in laymen terms.
+5. Please help me understand the value of my company and how to price the customers.
+6. My company should be user facing, business client and enterprize grade hft.
+7. Use smart and hardwork based approach to tackle this problem and make a profitable company from scratch.
+8. Create this end to end nano second automated HFT system with structured, clean and expandable code.
 
 
 
-Initial Research Report and Development Plan:
+# Initial Research Report and Development Plan:
 # Idyll Intelligent Systems - Complete HFT Company Development Package
 
 ## Table of Contents
