@@ -4,7 +4,7 @@
 3. This system can be interacted by users, owners, agentic ai, llms, deep learning models, other companies via api/web-ui and all the relevant IO interactions
 4. Explain all the components involved in our nano second autonomous hft system and help me build a production ready system from scratch. Write a SRS document with all the components and UML diagrams for better understanding,system flow, technology stack, thesis paper, ppt slides for explaining the system in laymen terms, investor pitch slides with best visual images for better understanding
 5. Please help me understand the value of my company, investment to build the company from scratch and how to price the customers.
-6. My company should be user facing, business client and enterprize grade hft.
+6. My company should be user facing, business client facing and enterprize grade competive hft.
 7. Use smart and hardwork based approach to tackle this problem and make a profitable company from scratch.
 8. Trading can be performed in any region stock exchange, crypto exchange, mfs etc. that is all global markets should be available to trade in our system
 9. Create this end to end nano second automated HFT system with structured, clean and expandable code.
