@@ -9,6 +9,7 @@
 8. Trading can be performed in any region stock exchange, crypto exchange, mfs etc. that is all global markets should be available to trade in our system
 9. Create this end to end nano second automated HFT system with structured, clean and expandable code.
 10. Test this system with recent 2020-2024 data in two phases, covid and normal phase seperatly to showcase reliability and robustness of our system, show this as an interaction test in our web ui for demo purposes.
+11. Dont update this readme file, follow all the above 10 steps with atmost perfection and use expert level understanding to tackle and solve the problem
 
 
 
