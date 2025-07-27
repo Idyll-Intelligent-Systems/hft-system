@@ -153,9 +153,6 @@ class StrategyAgent extends EventEmitter {
             signal: signal,
             strategy: 'momentum',
             features: features,
-            symbol: 'AAPL', // Default symbol for simulation
-            suggestedQuantity: Math.floor(Math.random() * 1000) + 100,
-            riskScore: Math.max(0, Math.min(1, volatility / 100)),
         };
     }
 
@@ -179,9 +176,6 @@ class StrategyAgent extends EventEmitter {
             signal: signal,
             strategy: 'mean_reversion',
             features: features,
-            symbol: 'MSFT', // Different symbol for mean reversion
-            suggestedQuantity: Math.floor(Math.random() * 800) + 150,
-            riskScore: Math.max(0, Math.min(1, Math.abs(bollinger_position) * 0.8)),
         };
     }
 
@@ -204,9 +198,6 @@ class StrategyAgent extends EventEmitter {
             strategy: 'arbitrage',
             features: features,
             spread: price_spread,
-            symbol: 'GOOGL', // Arbitrage symbol
-            suggestedQuantity: Math.floor(Math.random() * 500) + 50,
-            riskScore: Math.max(0, Math.min(1, (1 - latency_edge) * 0.6)),
         };
     }
 
@@ -235,9 +226,6 @@ class StrategyAgent extends EventEmitter {
             strategy: 'market_making',
             features: features,
             inventory: inventory,
-            symbol: 'TSLA', // Market making symbol
-            suggestedQuantity: Math.floor(Math.random() * 300) + 25,
-            riskScore: Math.max(0, Math.min(1, Math.abs(inventory - 0.5) * 0.7)),
         };
     }
 
