@@ -1,0 +1,71 @@
+# .dockerignore for HFT System
+# Exclude unnecessary files from Docker build context
+
+# Node modules (will be installed in container)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime files
+*.pid
+*.log
+logs/
+tmp/
+
+# Development files
+.git/
+.gitignore
+.eslintrc*
+.prettierrc*
+.editorconfig
+*.test.js
+tests/
+coverage/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Build artifacts
+build/
+dist/
+*.tar.gz
+*.zip
+
+# Documentation
+README.md
+docs/
+*.md
+
+# Docker files (except Dockerfile)
+docker-compose*.yml
+.dockerignore
+
+# Cache directories
+.npm/
+.cache/
+data/cache/
+
+# Backup files
+*.backup
+*.bak
+
+# Temporary files
+*.tmp
+*.temp

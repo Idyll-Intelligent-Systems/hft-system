@@ -4,20 +4,26 @@
   "description": "Idyll Intelligent Systems - Automated Nanosecond High-Frequency Trading Platform",
   "main": "src/main.js",
   "scripts": {
-    "start": "node src/main.js",
-    "dev": "nodemon src/main.js",
-    "build": "npm run build:core && npm run build:web",
-    "build:core": "tsc -p tsconfig.json",
-    "build:web": "cd web && npm run build",
+    "start": "./start.sh",
+    "stop": "./stop.sh",
+    "monitor": "./monitor.sh",
+    "restart": "./stop.sh && ./start.sh",
+    "dev": "node src/main.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "benchmark": "node tests/performance/latency-benchmark.js",
-    "simulate": "node src/simulation/market-simulator.js",
-    "backtest": "node src/backtesting/backtest-engine.js",
-    "deploy": "npm run build && node deploy/production-deploy.js",
-    "monitor": "node src/monitoring/system-monitor.js",
-    "risk-check": "node src/risk/risk-validator.js"
+    "logs": "./monitor.sh -l",
+    "follow": "./monitor.sh -f",
+    "docker:build": "./docker-run.sh build",
+    "docker:start": "./docker-run.sh start",
+    "docker:stop": "./docker-run.sh stop",
+    "docker:restart": "./docker-run.sh restart",
+    "docker:logs": "./docker-run.sh logs",
+    "docker:status": "./docker-run.sh status",
+    "docker:shell": "./docker-run.sh shell",
+    "docker:clean": "./docker-run.sh clean",
+    "docker:backup": "./docker-run.sh backup",
+    "docker:update": "./docker-run.sh update"
   },
   "keywords": [
     "hft",
@@ -49,8 +55,6 @@
     "moment": "^2.29.4",
     "mongodb": "^5.7.0",
     "node-cron": "^3.0.2",
-    "node-rdkafka": "^2.18.0",
-    "numjs": "^0.16.0",
     "redis": "^4.6.8",
     "sharp": "^0.32.4",
     "simple-statistics": "^7.8.3",
@@ -80,6 +84,10 @@
     "supertest": "^6.3.3",
     "ts-node": "^10.9.1",
     "typescript": "^5.1.6"
+  },
+  "optionalDependencies": {
+    "node-rdkafka": "^2.18.0",
+    "numjs": "^0.16.0"
   },
   "engines": {
     "node": ">=18.0.0",

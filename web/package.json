@@ -1,0 +1,10 @@
+{
+  "name": "hft-web-interface",
+  "version": "1.0.0",
+  "description": "Web interface for HFT system",
+  "main": "web-interface.js",
+  "scripts": {
+    "build": "echo 'Web interface build complete'",
+    "start": "node web-interface.js"
+  }
+}

@@ -245,38 +245,96 @@ class WebInterface {
 
         // Trading interface routes
         this.app.post('/api/orders', (req, res) => {
-            const { symbol, side, quantity, price, orderType = 'LIMIT' } = req.body;
-            
-            // Enhanced order validation
-            if (!symbol || !side || !quantity || !price) {
-                return res.status(400).json({ error: 'Missing required order parameters' });
-            }
-            
-            const order = {
-                id: `ORD_${Date.now()}`,
-                symbol,
-                side,
-                quantity,
-                price,
-                orderType,
-                status: 'SUBMITTED',
-                timestamp: Date.now(),
-                venue: 'DEMO'
-            };
-            
-            // Broadcast to connected clients
-            this.io.emit('newOrder', order);
-            
-            // Simulate order processing
-            setTimeout(() => {
-                order.status = 'FILLED';
-                order.fillPrice = price * (1 + (Math.random() - 0.5) * 0.001);
-                this.io.emit('orderFilled', order);
+            try {
+                const { symbol, side, quantity, price, orderType = 'LIMIT' } = req.body;
                 
-                // Update system metrics
-                this.systemMetrics.totalTrades++;
-                this.systemMetrics.dailyPnL += (order.fillPrice - price) * quantity * (side === 'BUY' ? -1 : 1);
-            }, Math.random() * 1000 + 500);
+                // Enhanced order validation
+                if (!symbol || !side || !quantity || !price) {
+                    return res.status(400).json({ 
+                        error: 'Missing required order parameters',
+                        required: ['symbol', 'side', 'quantity', 'price']
+                    });
+                }
+
+                // Validate numeric values
+                const numQuantity = parseInt(quantity);
+                const numPrice = parseFloat(price);
+                
+                if (isNaN(numQuantity) || numQuantity <= 0) {
+                    return res.status(400).json({ error: 'Invalid quantity: must be a positive number' });
+                }
+                
+                if (isNaN(numPrice) || numPrice <= 0) {
+                    return res.status(400).json({ error: 'Invalid price: must be a positive number' });
+                }
+
+                // Validate side
+                if (!['BUY', 'SELL'].includes(side.toUpperCase())) {
+                    return res.status(400).json({ error: 'Invalid side: must be BUY or SELL' });
+                }
+                
+                const order = {
+                    id: `ORD_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+                    symbol: symbol.toUpperCase(),
+                    side: side.toUpperCase(),
+                    quantity: numQuantity,
+                    price: numPrice,
+                    orderType: orderType.toUpperCase(),
+                    status: 'SUBMITTED',
+                    timestamp: Date.now(),
+                    venue: 'DEMO'
+                };
+                
+                // Send immediate response
+                res.json({
+                    ...order,
+                    message: 'Order submitted successfully'
+                });
+                
+                // Broadcast to connected clients immediately
+                if (this.io) {
+                    this.io.emit('newOrder', order);
+                }
+                
+                // Simulate order processing with faster response
+                const processingDelay = Math.random() * 500 + 100; // 100-600ms
+                setTimeout(() => {
+                    try {
+                        const slippage = (Math.random() - 0.5) * 0.002; // 0.2% max slippage
+                        order.status = 'FILLED';
+                        order.fillPrice = Math.round((numPrice * (1 + slippage)) * 100) / 100;
+                        order.fillTime = Date.now();
+                        
+                        if (this.io) {
+                            this.io.emit('orderFilled', order);
+                        }
+                        
+                        // Update system metrics
+                        this.systemMetrics.totalTrades = (this.systemMetrics.totalTrades || 0) + 1;
+                        const pnl = (order.fillPrice - numPrice) * numQuantity * (order.side === 'BUY' ? -1 : 1);
+                        this.systemMetrics.dailyPnL = (this.systemMetrics.dailyPnL || 0) + pnl;
+                        
+                        // Broadcast updated metrics
+                        if (this.io) {
+                            this.io.emit('metricsUpdate', this.systemMetrics);
+                        }
+                    } catch (error) {
+                        console.error('Error processing order fill:', error);
+                        order.status = 'REJECTED';
+                        order.rejectReason = 'Processing error';
+                        if (this.io) {
+                            this.io.emit('orderRejected', order);
+                        }
+                    }
+                }, processingDelay);
+                
+            } catch (error) {
+                console.error('Order submission error:', error);
+                res.status(500).json({ 
+                    error: 'Internal server error during order submission',
+                    details: error.message 
+                });
+            }
             
             res.json(order);
         });
@@ -398,6 +456,16 @@ class WebInterface {
             this.io.emit('systemUpdate', this.systemMetrics);
         }, 1000);
 
+        // Broadcast positions updates every 3 seconds
+        setInterval(() => {
+            try {
+                const positions = this.getCurrentPositions();
+                this.io.emit('positionsUpdate', positions);
+            } catch (error) {
+                console.warn('Error broadcasting positions update:', error.message);
+            }
+        }, 3000);
+
         // Broadcast market data updates
         if (this.marketDataManager) {
             this.marketDataManager.on('marketData', (data) => {
@@ -454,38 +522,66 @@ class WebInterface {
     }
 
     gatherSystemMetrics() {
-        const baseMetrics = {
-            totalTrades: this.systemMetrics.totalTrades,
-            dailyPnL: this.systemMetrics.dailyPnL,
-            averageLatency: this.systemMetrics.averageLatency,
-            systemHealth: this.systemMetrics.systemHealth,
-            tradingActive: this.systemMetrics.tradingActive,
-            uptime: process.uptime(),
-            connectedClients: this.connectedClients,
-            timestamp: Date.now()
-        };
+        try {
+            const baseMetrics = {
+                totalTrades: this.systemMetrics.totalTrades || 0,
+                dailyPnL: this.systemMetrics.dailyPnL || 0,
+                averageLatency: this.systemMetrics.averageLatency || 742,
+                systemHealth: this.systemMetrics.systemHealth || 'OPTIMAL',
+                tradingActive: this.systemMetrics.tradingActive !== undefined ? this.systemMetrics.tradingActive : true,
+                uptime: process.uptime(),
+                connectedClients: this.connectedClients || 0,
+                timestamp: Date.now()
+            };
 
-        // Add market data metrics if available
-        if (this.marketDataManager) {
-            const marketMetrics = this.marketDataManager.getSystemMetrics();
-            Object.assign(baseMetrics, {
-                marketDataLatency: marketMetrics.averageLatency,
-                marketDataThroughput: marketMetrics.throughput,
-                messagesProcessed: marketMetrics.messagesProcessed
-            });
+            // Add market data metrics if available
+            if (this.marketDataManager && typeof this.marketDataManager.getSystemMetrics === 'function') {
+                try {
+                    const marketMetrics = this.marketDataManager.getSystemMetrics();
+                    if (marketMetrics) {
+                        Object.assign(baseMetrics, {
+                            marketDataLatency: marketMetrics.averageLatency || 0,
+                            marketDataThroughput: marketMetrics.throughput || 0,
+                            messagesProcessed: marketMetrics.messagesProcessed || 0
+                        });
+                    }
+                } catch (error) {
+                    console.warn('Error getting market data metrics:', error.message);
+                }
+            }
+
+            // Add system health metrics if available
+            if (this.systemHealth && typeof this.systemHealth.getStatus === 'function') {
+                try {
+                    const healthStatus = this.systemHealth.getStatus();
+                    if (healthStatus) {
+                        Object.assign(baseMetrics, {
+                            cpuUsage: healthStatus.cpu || 0,
+                            memoryUsage: healthStatus.memory || 0,
+                            systemStatus: healthStatus.status || 'UNKNOWN'
+                        });
+                    }
+                } catch (error) {
+                    console.warn('Error getting system health metrics:', error.message);
+                }
+            }
+
+            return baseMetrics;
+        } catch (error) {
+            console.error('Error gathering system metrics:', error);
+            // Return basic fallback metrics
+            return {
+                totalTrades: 0,
+                dailyPnL: 0,
+                averageLatency: 742,
+                systemHealth: 'ERROR',
+                tradingActive: false,
+                uptime: process.uptime(),
+                connectedClients: 0,
+                timestamp: Date.now(),
+                error: error.message
+            };
         }
-
-        // Add system health metrics if available
-        if (this.systemHealth) {
-            const healthStatus = this.systemHealth.getStatus();
-            Object.assign(baseMetrics, {
-                cpuUsage: healthStatus.cpu,
-                memoryUsage: healthStatus.memory,
-                systemStatus: healthStatus.status
-            });
-        }
-
-        return baseMetrics;
     }
 
     getComponentStatus() {
@@ -507,13 +603,62 @@ class WebInterface {
     }
 
     getCurrentPositions() {
-        return [
-            { symbol: 'AAPL', quantity: 1000, avgPrice: 150.25, currentPrice: 151.30, pnl: 1050, changePercent: 0.7 },
-            { symbol: 'GOOGL', quantity: 500, avgPrice: 2800.00, currentPrice: 2825.50, pnl: 12750, changePercent: 0.91 },
-            { symbol: 'MSFT', quantity: 750, avgPrice: 380.15, currentPrice: 378.90, pnl: -937.5, changePercent: -0.33 },
-            { symbol: 'TSLA', quantity: 300, avgPrice: 245.80, currentPrice: 248.20, pnl: 720, changePercent: 0.98 },
-            { symbol: 'NVDA', quantity: 200, avgPrice: 485.60, currentPrice: 492.15, pnl: 1310, changePercent: 1.35 }
-        ];
+        try {
+            // Try to get real positions from demo trading interface first
+            if (this.demoTradingInterface && typeof this.demoTradingInterface.getCurrentPositions === 'function') {
+                try {
+                    const realPositions = this.demoTradingInterface.getCurrentPositions();
+                    if (realPositions && realPositions.length > 0) {
+                        return realPositions;
+                    }
+                } catch (error) {
+                    console.warn('Error getting real positions:', error.message);
+                }
+            }
+            
+            // Generate dynamic mock positions with realistic fluctuations
+            const symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'META', 'AMZN'];
+            const positions = [];
+            
+            const now = Date.now();
+            for (let i = 0; i < Math.min(5, symbols.length); i++) {
+                const symbol = symbols[i];
+                const basePrice = this.getBasePrice(symbol);
+                const variation = Math.sin((now / 10000) + i) * 0.02 + Math.random() * 0.01 - 0.005;
+                const currentPrice = basePrice * (1 + variation);
+                const avgPrice = basePrice * (1 + (Math.random() - 0.5) * 0.01);
+                const quantity = Math.floor(Math.random() * 1000) + 100;
+                const pnl = (currentPrice - avgPrice) * quantity;
+                const changePercent = ((currentPrice - avgPrice) / avgPrice) * 100;
+                
+                positions.push({
+                    symbol,
+                    quantity,
+                    avgPrice: Math.round(avgPrice * 100) / 100,
+                    currentPrice: Math.round(currentPrice * 100) / 100,
+                    pnl: Math.round(pnl * 100) / 100,
+                    changePercent: Math.round(changePercent * 100) / 100
+                });
+            }
+            
+            return positions;
+        } catch (error) {
+            console.error('Error getting current positions:', error);
+            return [];
+        }
+    }
+
+    getBasePrice(symbol) {
+        const basePrices = {
+            'AAPL': 150.25,
+            'GOOGL': 2800.00,
+            'MSFT': 380.15,
+            'TSLA': 245.80,
+            'NVDA': 485.60,
+            'META': 310.45,
+            'AMZN': 145.30
+        };
+        return basePrices[symbol] || 100;
     }
 
     getRecentOrders() {

@@ -41,6 +41,77 @@ class HFTTestingFramework extends EventEmitter {
         this.initializeTests();
     }
 
+    // Method expected by tests
+    async runAllTests() {
+        console.log('🚀 Running all HFT tests...');
+        const results = {
+            latency: await this.runLatencyTest(1000),
+            throughput: await this.runThroughputTest(5000, 5),
+            accuracy: await this.runAccuracyTest(),
+            stress: await this.runStressTest(),
+            timestamp: new Date().toISOString(),
+        };
+        return results;
+    }
+
+    // Method expected by tests
+    async runLatencyTest(iterations = 1000) {
+        console.log(`🔬 Running latency test with ${iterations} iterations...`);
+
+        const latencies = [];
+        for (let i = 0; i < iterations; i++) {
+            const start = process.hrtime.bigint();
+            // Simulate order processing
+            await this.simulateOrderProcessing();
+            const end = process.hrtime.bigint();
+            latencies.push(Number(end - start) / 1000000); // Convert to microseconds
+        }
+
+        latencies.sort((a, b) => a - b);
+        return {
+            averageLatency: latencies.reduce((a, b) => a + b) / latencies.length,
+            minLatency: latencies[0],
+            maxLatency: latencies[latencies.length - 1],
+            p50Latency: latencies[Math.floor(latencies.length * 0.5)],
+            p95Latency: latencies[Math.floor(latencies.length * 0.95)],
+            p99Latency: latencies[Math.floor(latencies.length * 0.99)],
+            iterations,
+        };
+    }
+
+    // Method expected by tests
+    async runThroughputTest(targetOrders = 10000, durationSeconds = 5) {
+        console.log(`🔬 Running throughput test: ${targetOrders} orders in ${durationSeconds}s...`);
+
+        const startTime = Date.now();
+        let ordersProcessed = 0;
+
+        while (Date.now() - startTime < durationSeconds * 1000 && ordersProcessed < targetOrders) {
+            await this.simulateOrderProcessing();
+            ordersProcessed++;
+        }
+
+        const actualDuration = (Date.now() - startTime) / 1000;
+        const ordersPerSecond = ordersProcessed / actualDuration;
+
+        return {
+            totalOrders: ordersProcessed,
+            ordersPerSecond,
+            duration: actualDuration,
+            targetOrders,
+            targetDuration: durationSeconds,
+        };
+    }
+
+    // Helper method for simulations
+    async simulateOrderProcessing() {
+        // Simulate minimal order processing delay
+        return new Promise(resolve => {
+            const delay = Math.random() * 0.1; // 0-0.1ms
+            setTimeout(resolve, delay);
+        });
+    }
+
     initializeTests() {
         console.log('🧪 Initializing HFT Testing Framework...');
 

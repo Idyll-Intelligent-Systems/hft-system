@@ -1,0 +1,30 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB-HFT
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    jsonData:
+      version: Flux
+      organization: hft-org
+      defaultBucket: hft-data
+      tlsSkipVerify: true
+    secureJsonData:
+      token: default-token
+    isDefault: true
+    editable: true
+    
+  - name: MongoDB-HFT
+    type: grafana-simple-json-datasource
+    access: proxy
+    url: http://hft-system:3000/api/grafana/mongodb
+    isDefault: false
+    editable: true
+    
+  - name: Prometheus-Node
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    editable: true

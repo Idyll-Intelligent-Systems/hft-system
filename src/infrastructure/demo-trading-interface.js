@@ -695,16 +695,21 @@ class DemoTradingInterface extends EventEmitter {
             const allPositions = [];
             for (const [sessionId, session] of this.activeSessions) {
                 if (session.status === 'RUNNING' && session.positions) {
-                    const sessionPositions = Object.entries(session.positions).map(([symbol, position]) => ({
-                        symbol,
-                        quantity: position.quantity,
-                        avgPrice: position.averagePrice,
-                        currentPrice: position.currentPrice || position.averagePrice,
-                        pnl: position.unrealizedPnL || 0,
-                        changePercent: position.currentPrice ? 
-                            ((position.currentPrice - position.averagePrice) / position.averagePrice * 100) : 0,
-                        sessionId
-                    }));
+                    const sessionPositions = Object.entries(session.positions).map(
+                        ([symbol, position]) => ({
+                            symbol,
+                            quantity: position.quantity,
+                            avgPrice: position.averagePrice,
+                            currentPrice: position.currentPrice || position.averagePrice,
+                            pnl: position.unrealizedPnL || 0,
+                            changePercent: position.currentPrice
+                                ? ((position.currentPrice - position.averagePrice) /
+                                      position.averagePrice) *
+                                  100
+                                : 0,
+                            sessionId,
+                        })
+                    );
                     allPositions.push(...sessionPositions);
                 }
             }
@@ -716,7 +721,7 @@ class DemoTradingInterface extends EventEmitter {
     }
 
     // Get system status
-    getStatus() {
+    getSystemStatus() {
         return this.isInitialized ? 'RUNNING' : 'STOPPED';
     }
 }

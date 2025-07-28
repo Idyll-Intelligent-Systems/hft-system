@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.socket.io https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' ws: wss:;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
     <title>Idyll HFT System - Advanced Trading Dashboard</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -456,6 +460,11 @@
                 font-size: 1.4rem;
             }
             
+            .header-stats {
+                font-size: 0.8rem;
+                gap: 1rem;
+            }
+            
             .dashboard-container {
                 padding: 1rem;
                 margin-top: 120px;
@@ -468,6 +477,60 @@
             
             .log-filter {
                 width: 100%;
+            }
+            
+            .notification {
+                min-width: 280px;
+                margin: 0 10px;
+            }
+            
+            .positions-table {
+                font-size: 0.9rem;
+            }
+            
+            .positions-table th,
+            .positions-table td {
+                padding: 0.5rem 0.25rem;
+            }
+            
+            .form-group {
+                margin-bottom: 1rem;
+            }
+            
+            .performance-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-stats {
+                display: none;
+            }
+            
+            .main-content {
+                padding: 1rem 0.5rem;
+            }
+            
+            .widget {
+                padding: 1rem;
+            }
+            
+            .notification {
+                min-width: 250px;
+                margin: 0 5px;
+            }
+            
+            .positions-table {
+                font-size: 0.8rem;
+            }
+            
+            .button {
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
+            
+            .performance-grid {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -497,6 +560,119 @@
 
         .status-indicator.status-active {
             animation: pulse 2s infinite;
+        }
+
+        /* Notification System */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            pointer-events: none;
+        }
+
+        .notification {
+            background: rgba(20, 20, 30, 0.95);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            min-width: 300px;
+            pointer-events: auto;
+            animation: slideInFromRight 0.3s ease-out;
+            position: relative;
+        }
+
+        .notification.success {
+            border-left-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+
+        .notification.error {
+            border-left-color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .notification.warning {
+            border-left-color: #ffaa00;
+            background: rgba(255, 170, 0, 0.1);
+        }
+
+        .notification.info {
+            border-left-color: #00d4ff;
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .notification .title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            font-size: 0.9rem;
+        }
+
+        .notification .message {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .notification .close-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.75rem;
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            font-size: 1.2rem;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .notification .close-btn:hover {
+            opacity: 1;
+        }
+
+        @keyframes slideInFromRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutToRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        /* Loading states */
+        .button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .button:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Refresh indicator */
+        .refresh-indicator {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            text-align: right;
+            margin-top: 0.5rem;
         }
 
         /* Loading states */
@@ -799,10 +975,13 @@
     </style>
 </head>
 <body>
-    <div class="header">
+    <!-- Notification Container -->
+    <div class="notification-container" id="notificationContainer" role="alert" aria-live="polite" aria-label="System notifications"></div>
+    
+    <div class="header" role="banner">
         <div class="header-content">
             <h1>🚀 Idyll Intelligent Systems - HFT Dashboard</h1>
-            <div class="header-stats">
+            <div class="header-stats" role="status" aria-label="System status indicators">
                 <div>
                     <span class="status-indicator status-optimal" id="statusIndicator"></span>
                     <span id="systemStatus">OPTIMAL</span>
@@ -814,7 +993,7 @@
         </div>
     </div>
 
-    <div class="main-content">
+    <div class="main-content" role="main" aria-label="Trading dashboard content">
         <!-- Performance Metrics -->
         <div class="dashboard-grid">
             <div class="widget">
@@ -899,16 +1078,16 @@
             <div class="widget">
                 <h3>🎛️ System Controls</h3>
                 <div class="widget-content">
-                    <button class="button success" onclick="toggleTrading()">
+                    <button class="button success" onclick="toggleTrading()" aria-label="Toggle trading system on or off">
                         <span id="tradingStatus">🟢 Trading Active</span>
                     </button>
-                    <button class="button danger" onclick="emergencyStop()">
+                    <button class="button danger" onclick="emergencyStop()" aria-label="Emergency stop all trading">
                         🚨 Emergency Stop
                     </button>
-                    <button class="button" onclick="refreshData()">
+                    <button class="button" onclick="refreshData()" aria-label="Refresh dashboard data">
                         🔄 Refresh Data
                     </button>
-                    <button class="button" onclick="exportLogs()">
+                    <button class="button" onclick="exportLogs()" aria-label="Export system logs">
                         📄 Export Logs
                     </button>
                 </div>
@@ -955,6 +1134,7 @@
                             <!-- Positions will be populated here -->
                         </tbody>
                     </table>
+                    <div class="refresh-indicator" id="positionsRefreshTime"></div>
                 </div>
             </div>
 
@@ -1051,13 +1231,13 @@
             </div>
             
             <div style="text-align: center; margin: 2rem 0;">
-                <button class="button success" onclick="startDemo()" id="startDemoBtn">
+                <button class="button success" onclick="startDemo()" id="startDemoBtn" aria-label="Start demo trading session">
                     🚀 Start Demo Trading
                 </button>
-                <button class="button" onclick="pauseDemo()" id="pauseDemoBtn" disabled>
+                <button class="button" onclick="pauseDemo()" id="pauseDemoBtn" disabled aria-label="Pause demo trading">
                     ⏸️ Pause
                 </button>
-                <button class="button danger" onclick="stopDemo()" id="stopDemoBtn" disabled>
+                <button class="button danger" onclick="stopDemo()" id="stopDemoBtn" disabled aria-label="Stop demo trading session">
                     🛑 Stop
                 </button>
             </div>
@@ -1101,21 +1281,21 @@
             <h3>📝 System Console</h3>
             <div class="widget-content">
                 <div class="log-controls">
-                    <select class="log-filter" id="logLevelFilter">
+                    <select class="log-filter" id="logLevelFilter" aria-label="Filter logs by level">
                         <option value="all">All Levels</option>
                         <option value="error">Errors</option>
                         <option value="warning">Warnings</option>
                         <option value="info">Info</option>
                         <option value="debug">Debug</option>
                     </select>
-                    <input type="text" class="log-filter" id="logSearch" placeholder="Search logs...">
-                    <button class="log-pause-btn" id="logPauseBtn" onclick="toggleLogsPause()">
+                    <input type="text" class="log-filter" id="logSearch" placeholder="Search logs..." aria-label="Search system logs">
+                    <button class="log-pause-btn" id="logPauseBtn" onclick="toggleLogsPause()" aria-label="Pause log updates">
                         ⏸️ Pause
                     </button>
-                    <button class="log-clear-btn" onclick="clearLogs()">
+                    <button class="log-clear-btn" onclick="clearLogs()" aria-label="Clear all logs">
                         🗑️ Clear
                     </button>
-                    <button class="button" onclick="exportLogs()">
+                    <button class="button" onclick="exportLogs()" aria-label="Export logs to file">
                         📄 Export
                     </button>
                 </div>
@@ -1172,19 +1352,35 @@
             loadMarketSummary();
             loadPositions();
             
-            // Update metrics every 2 seconds
+            // Update metrics every 2 seconds (faster for more responsive UI)
             setInterval(refreshData, 2000);
             
-            // Update charts every 5 seconds
-            setInterval(updateMainChart, 5000);
+            // Update positions more frequently for real-time feel
+            setInterval(loadPositions, 5000);
+            
+            // Update charts every 3 seconds (faster updates)
+            setInterval(updateMainChart, 3000);
             
             // Update uptime display
             setInterval(updateUptime, 1000);
+            
+            // Show initial notification
+            setTimeout(() => {
+                showNotification('System Ready', 'HFT Dashboard loaded successfully', 'success', 3000);
+            }, 1000);
         });
 
         // Socket event handlers
         socket.on('connect', () => {
-            addLog('Connected to HFT system', 'success');
+            addLog('🟢 Connected to HFT system', 'success');
+            showNotification('Connection Status', 'Connected to HFT system', 'success', 3000);
+            document.getElementById('clientCount').textContent = 'Connected';
+        });
+
+        socket.on('disconnect', () => {
+            addLog('🔴 Disconnected from HFT system', 'warning');
+            showNotification('Connection Status', 'Disconnected from HFT system', 'warning', 5000);
+            document.getElementById('clientCount').textContent = 'Disconnected';
         });
 
         socket.on('systemUpdate', (data) => {
@@ -1196,16 +1392,39 @@
         });
 
         socket.on('tradeExecution', (trade) => {
-            addLog(`Trade: ${trade.side} ${trade.quantity} ${trade.symbol} @ $${trade.price}`, 'success');
+            addLog(`🚀 Trade: ${trade.side} ${trade.quantity} ${trade.symbol} @ $${trade.price}`, 'success');
+            showNotification('Trade Executed', `${trade.side} ${trade.quantity} ${trade.symbol} @ $${trade.price}`, 'success', 3000);
             updateMainChart();
+            // Refresh positions after trade
+            setTimeout(loadPositions, 500);
         });
 
         socket.on('newOrder', (order) => {
-            addLog(`Order: ${order.side} ${order.quantity} ${order.symbol} @ $${order.price}`, 'info');
+            addLog(`📝 Order: ${order.side} ${order.quantity} ${order.symbol} @ $${order.price}`, 'info');
+        });
+
+        socket.on('orderFilled', (order) => {
+            addLog(`✅ Order Filled: ${order.side} ${order.quantity} ${order.symbol} @ $${order.fillPrice}`, 'success');
+            showNotification('Order Filled', `${order.side} ${order.quantity} ${order.symbol} @ $${order.fillPrice}`, 'success', 3000);
+            // Refresh data after order fill
+            setTimeout(() => {
+                loadPositions();
+                refreshData();
+            }, 300);
+        });
+
+        socket.on('orderRejected', (order) => {
+            addLog(`❌ Order Rejected: ${order.symbol} - ${order.rejectReason}`, 'error');
+            showNotification('Order Rejected', `${order.symbol}: ${order.rejectReason}`, 'error', 5000);
+        });
+
+        socket.on('metricsUpdate', (metrics) => {
+            updateSystemMetrics(metrics);
         });
 
         socket.on('emergencyStop', () => {
-            addLog('EMERGENCY STOP ACTIVATED', 'error');
+            addLog('🚨 EMERGENCY STOP ACTIVATED', 'error');
+            showNotification('EMERGENCY STOP', 'All trading operations have been halted', 'error', 0);
             tradingActive = false;
             updateTradingStatus();
         });
@@ -1215,11 +1434,22 @@
         });
 
         socket.on('demoTrade', (data) => {
-            addLog(`Demo Trade: ${data.trade.action} ${data.trade.quantity} ${data.trade.symbol}`, 'info');
+            addLog(`🎮 Demo Trade: ${data.trade.action} ${data.trade.quantity} ${data.trade.symbol}`, 'info');
         });
 
         socket.on('sessionCompleted', (data) => {
             completeDemoSession(data.session);
+            showNotification('Demo Session Complete', `Session finished with ${data.session.totalTrades} trades`, 'info', 5000);
+        });
+
+        socket.on('positionsUpdate', (positions) => {
+            // Real-time position updates
+            updatePositionsDisplay(positions);
+        });
+
+        socket.on('riskAlert', (alert) => {
+            addLog(`⚠️ Risk Alert: ${alert.message}`, 'warning');
+            showNotification('Risk Alert', alert.message, 'warning', 10000);
         });
 
         // Initialize charts
@@ -1428,43 +1658,183 @@
         async function loadPositions() {
             try {
                 const response = await fetch('/api/positions');
-                const positions = await response.json();
                 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const positions = await response.json();
                 const tbody = document.getElementById('positionsTableBody');
+                
+                if (!Array.isArray(positions)) {
+                    throw new Error('Invalid positions data received');
+                }
+                
+                // Clear existing rows
                 tbody.innerHTML = '';
                 
+                if (positions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; opacity: 0.7;">No positions found</td></tr>';
+                    return;
+                }
+                
                 positions.forEach(position => {
-                    const row = document.createElement('tr');
-                    const changeClass = position.pnl >= 0 ? 'positive' : 'negative';
-                    const changeSymbol = position.pnl >= 0 ? '+' : '';
-                    
-                    row.innerHTML = `
-                        <td><strong>${position.symbol}</strong></td>
-                        <td>${position.quantity.toLocaleString()}</td>
-                        <td>$${position.avgPrice.toFixed(2)}</td>
-                        <td>$${position.currentPrice.toFixed(2)}</td>
-                        <td class="${changeClass}">${changeSymbol}$${position.pnl.toFixed(0)}</td>
-                        <td class="${changeClass}">${changeSymbol}${position.changePercent?.toFixed(2) || '0.00'}%</td>
-                    `;
-                    
-                    tbody.appendChild(row);
+                    try {
+                        const row = document.createElement('tr');
+                        const changeClass = (position.pnl || 0) >= 0 ? 'positive' : 'negative';
+                        const changeSymbol = (position.pnl || 0) >= 0 ? '+' : '';
+                        
+                        row.innerHTML = `
+                            <td><strong>${position.symbol || 'N/A'}</strong></td>
+                            <td>${(position.quantity || 0).toLocaleString()}</td>
+                            <td>$${(position.avgPrice || 0).toFixed(2)}</td>
+                            <td>$${(position.currentPrice || position.avgPrice || 0).toFixed(2)}</td>
+                            <td class="${changeClass}">${changeSymbol}$${(position.pnl || 0).toFixed(0)}</td>
+                            <td class="${changeClass}">${changeSymbol}${(position.changePercent || 0).toFixed(2)}%</td>
+                        `;
+                        
+                        tbody.appendChild(row);
+                    } catch (rowError) {
+                        console.error('Error creating position row:', rowError, position);
+                    }
                 });
+                
+                // Update last refresh time
+                const now = new Date().toLocaleTimeString();
+                const refreshIndicator = document.getElementById('positionsRefreshTime');
+                if (refreshIndicator) {
+                    refreshIndicator.textContent = `Last updated: ${now}`;
+                }
                 
             } catch (error) {
                 console.error('Failed to load positions:', error);
+                const tbody = document.getElementById('positionsTableBody');
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #ff6b6b;">Error loading positions: ${error.message}</td></tr>`;
+            }
+        }
+
+        async function loadRecentOrders() {
+            try {
+                const response = await fetch('/api/orders');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const orders = await response.json();
+                // Update orders display if needed
+                console.log('Recent orders loaded:', orders.length);
+                
+            } catch (error) {
+                console.error('Failed to load recent orders:', error);
+            }
+        }
+
+        function updatePositionsDisplay(positions) {
+            try {
+                if (!Array.isArray(positions)) return;
+                
+                const tbody = document.getElementById('positionsTableBody');
+                if (!tbody) return;
+                
+                // Clear existing rows
+                tbody.innerHTML = '';
+                
+                if (positions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; opacity: 0.7;">No positions found</td></tr>';
+                    return;
+                }
+                
+                positions.forEach(position => {
+                    try {
+                        const row = document.createElement('tr');
+                        const changeClass = (position.pnl || 0) >= 0 ? 'positive' : 'negative';
+                        const changeSymbol = (position.pnl || 0) >= 0 ? '+' : '';
+                        
+                        row.innerHTML = `
+                            <td><strong>${position.symbol || 'N/A'}</strong></td>
+                            <td>${(position.quantity || 0).toLocaleString()}</td>
+                            <td>$${(position.avgPrice || 0).toFixed(2)}</td>
+                            <td>$${(position.currentPrice || position.avgPrice || 0).toFixed(2)}</td>
+                            <td class="${changeClass}">${changeSymbol}$${(position.pnl || 0).toFixed(0)}</td>
+                            <td class="${changeClass}">${changeSymbol}${(position.changePercent || 0).toFixed(2)}%</td>
+                        `;
+                        
+                        // Add subtle animation for new rows
+                        row.style.animation = 'slideInUp 0.3s ease';
+                        tbody.appendChild(row);
+                    } catch (rowError) {
+                        console.error('Error creating position row:', rowError, position);
+                    }
+                });
+                
+                // Update last refresh time
+                const now = new Date().toLocaleTimeString();
+                const refreshIndicator = document.getElementById('positionsRefreshTime');
+                if (refreshIndicator) {
+                    refreshIndicator.textContent = `Last updated: ${now}`;
+                }
+                
+            } catch (error) {
+                console.error('Error updating positions display:', error);
             }
         }
 
         function updateMarketData(data) {
-            if (marketData[data.symbol]) {
-                marketData[data.symbol] = { ...marketData[data.symbol], ...data };
-                loadMarketSummary(); // Refresh display
+            try {
+                if (marketData[data.symbol]) {
+                    marketData[data.symbol] = { ...marketData[data.symbol], ...data };
+                    loadMarketSummary(); // Refresh display
+                }
+            } catch (error) {
+                console.error('Error updating market data:', error);
             }
         }
 
         function formatCurrency(amount) {
-            const sign = amount >= 0 ? '+' : '';
-            return sign + '$' + amount.toLocaleString();
+            try {
+                const sign = amount >= 0 ? '+' : '';
+                return sign + '$' + amount.toLocaleString();
+            } catch (error) {
+                return '$0';
+            }
+        }
+
+        // Notification System
+        function showNotification(title, message, type = 'info', duration = 5000) {
+            const container = document.getElementById('notificationContainer');
+            if (!container) return;
+
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            notification.innerHTML = `
+                <button class="close-btn" onclick="removeNotification(this.parentElement)">&times;</button>
+                <div class="title">${title}</div>
+                <div class="message">${message}</div>
+            `;
+
+            container.appendChild(notification);
+
+            // Auto-remove after duration
+            if (duration > 0) {
+                setTimeout(() => {
+                    removeNotification(notification);
+                }, duration);
+            }
+
+            return notification;
+        }
+
+        function removeNotification(notification) {
+            if (!notification || !notification.parentElement) return;
+            
+            notification.style.animation = 'slideOutToRight 0.3s ease-in';
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.parentElement.removeChild(notification);
+                }
+            }, 300);
         }
 
         // Enhanced logging system
@@ -1678,15 +2048,35 @@
         async function submitOrder(event) {
             event.preventDefault();
             
-            const orderData = {
-                symbol: document.getElementById('orderSymbol').value,
-                side: document.getElementById('orderSide').value,
-                quantity: parseInt(document.getElementById('orderQuantity').value),
-                price: parseFloat(document.getElementById('orderPrice').value),
-                orderType: 'LIMIT'
-            };
-
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            
             try {
+                // Disable button and show loading state
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+                
+                const orderData = {
+                    symbol: document.getElementById('orderSymbol').value,
+                    side: document.getElementById('orderSide').value,
+                    quantity: parseInt(document.getElementById('orderQuantity').value),
+                    price: parseFloat(document.getElementById('orderPrice').value),
+                    orderType: 'LIMIT'
+                };
+
+                // Validate form data
+                if (!orderData.symbol || !orderData.side || !orderData.quantity || !orderData.price) {
+                    throw new Error('Please fill in all required fields');
+                }
+
+                if (orderData.quantity <= 0) {
+                    throw new Error('Quantity must be greater than 0');
+                }
+
+                if (orderData.price <= 0) {
+                    throw new Error('Price must be greater than 0');
+                }
+
                 const response = await fetch('/api/orders', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1694,25 +2084,55 @@
                 });
                 
                 const data = await response.json();
-                addLog(`Order submitted: ${data.id}`, 'success');
+                
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP ${response.status}`);
+                }
+                
+                addLog(`✅ Order submitted: ${data.id} (${orderData.side} ${orderData.quantity} ${orderData.symbol} @ $${orderData.price})`, 'success');
+                showNotification('Order Submitted', `${data.message || 'Order placed successfully'}`, 'success', 3000);
+                
+                // Reset form
                 event.target.reset();
                 
-                // Refresh positions after order
-                setTimeout(loadPositions, 1000);
+                // Refresh positions after a short delay
+                setTimeout(() => {
+                    loadPositions();
+                    refreshData();
+                }, 500);
                 
             } catch (error) {
-                addLog(`Order failed: ${error.message}`, 'error');
+                console.error('Order submission error:', error);
+                addLog(`❌ Order failed: ${error.message}`, 'error');
+                showNotification('Order Failed', error.message, 'error', 5000);
+            } finally {
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
             }
         }
 
         async function refreshData() {
             try {
                 const response = await fetch('/api/metrics');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
                 updateSystemMetrics(data);
-                addLog('Data refreshed', 'info');
+                
+                // Also refresh positions and orders
+                await Promise.all([
+                    loadPositions(),
+                    loadRecentOrders()
+                ]);
+                
+                addLog('📊 Data refreshed successfully', 'info');
             } catch (error) {
                 console.error('Failed to refresh data:', error);
+                addLog(`⚠️ Failed to refresh data: ${error.message}`, 'warning');
             }
         }
 
@@ -1744,22 +2164,49 @@
 
         // Demo Trading Functions
         async function startDemo() {
-            const config = {
-                symbol: document.getElementById('demoSymbol').value,
-                strategy: document.getElementById('demoStrategy').value,
-                startDate: document.getElementById('demoStartDate').value,
-                endDate: document.getElementById('demoEndDate').value,
-                initialCapital: parseInt(document.getElementById('demoCapital').value),
-                speed: parseInt(document.getElementById('demoSpeed').value)
-            };
-
+            const startBtn = document.getElementById('startDemoBtn');
+            const originalText = startBtn.textContent;
+            
             try {
+                // Disable button and show loading
+                startBtn.disabled = true;
+                startBtn.textContent = '🔄 Starting...';
+                
+                const config = {
+                    symbol: document.getElementById('demoSymbol').value,
+                    strategy: document.getElementById('demoStrategy').value,
+                    startDate: document.getElementById('demoStartDate').value,
+                    endDate: document.getElementById('demoEndDate').value,
+                    initialCapital: parseInt(document.getElementById('demoCapital').value) || 100000,
+                    speed: parseInt(document.getElementById('demoSpeed').value) || 1
+                };
+
+                // Validate config
+                if (!config.symbol || !config.strategy) {
+                    throw new Error('Please select a symbol and strategy');
+                }
+
+                if (!config.startDate || !config.endDate) {
+                    throw new Error('Please select start and end dates');
+                }
+
+                if (new Date(config.startDate) >= new Date(config.endDate)) {
+                    throw new Error('Start date must be before end date');
+                }
+
+                addLog(`🚀 Starting demo trading session...`, 'info');
+
                 // Create demo session
                 const response = await fetch('/api/demo/session', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(config)
                 });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || `HTTP ${response.status}`);
+                }
                 
                 const session = await response.json();
                 currentDemoSession = session.id;
@@ -1769,18 +2216,25 @@
                     method: 'POST'
                 });
                 
-                if (startResponse.ok) {
-                    // Update UI
-                    document.getElementById('startDemoBtn').disabled = true;
-                    document.getElementById('pauseDemoBtn').disabled = false;
-                    document.getElementById('stopDemoBtn').disabled = false;
-                    
-                    // Subscribe to session updates
+                if (!startResponse.ok) {
+                    const error = await startResponse.json();
+                    throw new Error(error.error || `Failed to start session: HTTP ${startResponse.status}`);
+                }
+                
+                // Update UI
+                document.getElementById('pauseDemoBtn').disabled = false;
+                document.getElementById('stopDemoBtn').disabled = false;
+                
+                // Subscribe to session updates
+                if (socket && socket.connected) {
                     socket.emit('subscribeToSession', session.id);
-                    
-                    addLog(`Demo trading started: ${config.symbol} (${config.strategy})`, 'success');
-                    
-                    // Clear demo chart
+                }
+                
+                addLog(`✅ Demo trading started: ${config.symbol} (${config.strategy})`, 'success');
+                showNotification('Demo Started', `Trading ${config.symbol} with ${config.strategy} strategy`, 'success', 3000);
+                
+                // Clear and prepare demo chart
+                if (typeof demoChart !== 'undefined') {
                     demoChart.data.labels = [];
                     demoChart.data.datasets[0].data = [];
                     demoChart.data.datasets[1].data = [];
@@ -1788,7 +2242,13 @@
                 }
                 
             } catch (error) {
-                addLog(`Failed to start demo: ${error.message}`, 'error');
+                console.error('Demo start error:', error);
+                addLog(`❌ Failed to start demo: ${error.message}`, 'error');
+                showNotification('Demo Start Failed', error.message, 'error', 5000);
+                
+                // Re-enable start button on error
+                startBtn.disabled = false;
+                startBtn.textContent = originalText;
             }
         }
 

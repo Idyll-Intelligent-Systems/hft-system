@@ -1,0 +1,9 @@
+{
+  "buildTime": "2025-07-28T11:11:24Z",
+  "buildMachine": "Linux",
+  "nodeVersion": "v22.17.0",
+  "npmVersion": "9.8.1",
+  "gitCommit": "abb892c5fb787278f5cbf79b7b6dbd0a63c2baf1",
+  "gitBranch": "main",
+  "version": "1.0.0"
+}

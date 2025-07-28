@@ -688,6 +688,42 @@ class DemoTradingInterface extends EventEmitter {
         this.isInitialized = false;
         console.log('✅ Demo Trading Interface shutdown complete');
     }
+
+    // Get current positions across all active sessions
+    getCurrentPositions() {
+        try {
+            const allPositions = [];
+            for (const [sessionId, session] of this.activeSessions) {
+                if (session.status === 'RUNNING' && session.positions) {
+                    const sessionPositions = Object.entries(session.positions).map(
+                        ([symbol, position]) => ({
+                            symbol,
+                            quantity: position.quantity,
+                            avgPrice: position.averagePrice,
+                            currentPrice: position.currentPrice || position.averagePrice,
+                            pnl: position.unrealizedPnL || 0,
+                            changePercent: position.currentPrice
+                                ? ((position.currentPrice - position.averagePrice) /
+                                      position.averagePrice) *
+                                  100
+                                : 0,
+                            sessionId,
+                        })
+                    );
+                    allPositions.push(...sessionPositions);
+                }
+            }
+            return allPositions;
+        } catch (error) {
+            console.error('Error getting current positions from demo interface:', error);
+            return [];
+        }
+    }
+
+    // Get system status
+    getSystemStatus() {
+        return this.isInitialized ? 'RUNNING' : 'STOPPED';
+    }
 }
 
 module.exports = DemoTradingInterface;

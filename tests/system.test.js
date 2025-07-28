@@ -182,7 +182,7 @@ describe('HFT System End-to-End Tests', () => {
       
       // Check for essential dependencies
       expect(packageData.dependencies).toHaveProperty('express');
-      expect(packageData.dependencies).toHaveProperty('socket.io');
+      expect('socket.io' in packageData.dependencies).toBe(true);
       expect(packageData.dependencies).toHaveProperty('ws');
       expect(packageData.dependencies).toHaveProperty('winston');
       

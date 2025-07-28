@@ -173,6 +173,45 @@ class SystemHealthMonitor extends EventEmitter {
         return { ...this.metrics };
     }
 
+    // Method expected by tests
+    async checkNetworkConnectivity() {
+        try {
+            const dns = require('dns');
+            const util = require('util');
+            const lookup = util.promisify(dns.lookup);
+
+            // Test connectivity to multiple hosts
+            const hosts = ['google.com', '8.8.8.8', 'cloudflare.com'];
+            const results = [];
+
+            for (const host of hosts) {
+                try {
+                    const start = Date.now();
+                    await lookup(host);
+                    const latency = Date.now() - start;
+                    results.push({ host, status: 'connected', latency });
+                } catch (error) {
+                    results.push({ host, status: 'failed', error: error.message });
+                }
+            }
+
+            const connectedCount = results.filter(r => r.status === 'connected').length;
+            const isConnected = connectedCount > 0;
+
+            return {
+                connected: isConnected,
+                results,
+                timestamp: new Date().toISOString(),
+            };
+        } catch (error) {
+            return {
+                connected: false,
+                error: error.message,
+                timestamp: new Date().toISOString(),
+            };
+        }
+    }
+
     stopMonitoring() {
         if (this.monitorInterval) {
             clearInterval(this.monitorInterval);

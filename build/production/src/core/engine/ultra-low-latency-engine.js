@@ -407,6 +407,39 @@ class UltraLowLatencyEngine extends EventEmitter {
         return 'OPTIMAL';
     }
 
+    // Method expected by tests
+    getPerformanceMetrics() {
+        return {
+            averageLatency: this.stats.averageLatency,
+            p50Latency: this.stats.p50Latency,
+            p95Latency: this.stats.p95Latency,
+            p99Latency: this.stats.p99Latency,
+            throughput: this.stats.throughput,
+            processedMessages: this.stats.processedMessages,
+            bufferUtilization: (this.messageQueue.length / this.config.bufferSize) * 100,
+        };
+    }
+
+    // Method expected by tests
+    validateOrder(order) {
+        if (!order) {
+            throw new Error('Order is required');
+        }
+        if (!order.symbol || typeof order.symbol !== 'string') {
+            throw new Error('Order symbol is required and must be a string');
+        }
+        if (!order.side || !['BUY', 'SELL'].includes(order.side)) {
+            throw new Error('Order side must be BUY or SELL');
+        }
+        if (!order.quantity || typeof order.quantity !== 'number' || order.quantity <= 0) {
+            throw new Error('Order quantity must be a positive number');
+        }
+        if (!order.price || typeof order.price !== 'number' || order.price <= 0) {
+            throw new Error('Order price must be a positive number');
+        }
+        return true;
+    }
+
     async shutdown() {
         console.log('🛑 Shutting down Ultra-Low Latency Engine...');
 

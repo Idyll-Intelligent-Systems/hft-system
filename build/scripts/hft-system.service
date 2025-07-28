@@ -1,0 +1,19 @@
+[Unit]
+Description=Idyll HFT System
+After=network.target mongod.service redis.service influxdb.service
+Wants=mongod.service redis.service influxdb.service
+
+[Service]
+Type=simple
+User=codespace
+WorkingDirectory=/workspaces/hft-system/build/production
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node src/main.js
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=hft-system
+
+[Install]
+WantedBy=multi-user.target

@@ -12,7 +12,7 @@ const cors = require('cors');
 class WebInterface {
     constructor(config = {}) {
         this.config = {
-            port: config.port || 3000,
+            port: config.port || process.env.WEB_PORT || 3100,
             realTimeUpdates: config.realTimeUpdates || true,
             latencyMonitoring: config.latencyMonitoring || true,
             tradingInterface: config.tradingInterface || true,
@@ -84,6 +84,11 @@ class WebInterface {
         // Main dashboard route
         this.app.get('/', (req, res) => {
             res.sendFile(path.join(__dirname, 'public', 'index.html'));
+        });
+
+        // Docker health check endpoint
+        this.app.get('/health', (req, res) => {
+            res.status(200).send('OK');
         });
 
         // System health and status routes

@@ -1,6 +1,0 @@
-{"timestamp":"2025-07-28T06:41:45.056Z","level":"INFO","module":"TEST_SYSTEM","message":"Test log message","data":null}
-{"timestamp":"2025-07-28T06:41:45.315Z","level":"ERROR","module":"TEST_SYSTEM","message":"Test error message","data":null}
-{"timestamp":"2025-07-28T06:49:50.950Z","level":"INFO","module":"TEST_SYSTEM","message":"Test log message","data":null}
-{"timestamp":"2025-07-28T06:49:51.153Z","level":"ERROR","module":"TEST_SYSTEM","message":"Test error message","data":null}
-{"timestamp":"2025-07-28T06:56:06.102Z","level":"INFO","module":"TEST_SYSTEM","message":"Test log message","data":null}
-{"timestamp":"2025-07-28T06:56:06.329Z","level":"ERROR","module":"TEST_SYSTEM","message":"Test error message","data":null}

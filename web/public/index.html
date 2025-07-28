@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https:; script-src 'self' 'unsafe-inline' https://cdn.socket.io https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' ws: wss:;">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
     <title>Idyll HFT System - Advanced Trading Dashboard</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -972,12 +976,12 @@
 </head>
 <body>
     <!-- Notification Container -->
-    <div class="notification-container" id="notificationContainer"></div>
+    <div class="notification-container" id="notificationContainer" role="alert" aria-live="polite" aria-label="System notifications"></div>
     
-    <div class="header">
+    <div class="header" role="banner">
         <div class="header-content">
             <h1>🚀 Idyll Intelligent Systems - HFT Dashboard</h1>
-            <div class="header-stats">
+            <div class="header-stats" role="status" aria-label="System status indicators">
                 <div>
                     <span class="status-indicator status-optimal" id="statusIndicator"></span>
                     <span id="systemStatus">OPTIMAL</span>
@@ -989,7 +993,7 @@
         </div>
     </div>
 
-    <div class="main-content">
+    <div class="main-content" role="main" aria-label="Trading dashboard content">
         <!-- Performance Metrics -->
         <div class="dashboard-grid">
             <div class="widget">
@@ -1074,16 +1078,16 @@
             <div class="widget">
                 <h3>🎛️ System Controls</h3>
                 <div class="widget-content">
-                    <button class="button success" onclick="toggleTrading()">
+                    <button class="button success" onclick="toggleTrading()" aria-label="Toggle trading system on or off">
                         <span id="tradingStatus">🟢 Trading Active</span>
                     </button>
-                    <button class="button danger" onclick="emergencyStop()">
+                    <button class="button danger" onclick="emergencyStop()" aria-label="Emergency stop all trading">
                         🚨 Emergency Stop
                     </button>
-                    <button class="button" onclick="refreshData()">
+                    <button class="button" onclick="refreshData()" aria-label="Refresh dashboard data">
                         🔄 Refresh Data
                     </button>
-                    <button class="button" onclick="exportLogs()">
+                    <button class="button" onclick="exportLogs()" aria-label="Export system logs">
                         📄 Export Logs
                     </button>
                 </div>
@@ -1227,13 +1231,13 @@
             </div>
             
             <div style="text-align: center; margin: 2rem 0;">
-                <button class="button success" onclick="startDemo()" id="startDemoBtn">
+                <button class="button success" onclick="startDemo()" id="startDemoBtn" aria-label="Start demo trading session">
                     🚀 Start Demo Trading
                 </button>
-                <button class="button" onclick="pauseDemo()" id="pauseDemoBtn" disabled>
+                <button class="button" onclick="pauseDemo()" id="pauseDemoBtn" disabled aria-label="Pause demo trading">
                     ⏸️ Pause
                 </button>
-                <button class="button danger" onclick="stopDemo()" id="stopDemoBtn" disabled>
+                <button class="button danger" onclick="stopDemo()" id="stopDemoBtn" disabled aria-label="Stop demo trading session">
                     🛑 Stop
                 </button>
             </div>
@@ -1277,21 +1281,21 @@
             <h3>📝 System Console</h3>
             <div class="widget-content">
                 <div class="log-controls">
-                    <select class="log-filter" id="logLevelFilter">
+                    <select class="log-filter" id="logLevelFilter" aria-label="Filter logs by level">
                         <option value="all">All Levels</option>
                         <option value="error">Errors</option>
                         <option value="warning">Warnings</option>
                         <option value="info">Info</option>
                         <option value="debug">Debug</option>
                     </select>
-                    <input type="text" class="log-filter" id="logSearch" placeholder="Search logs...">
-                    <button class="log-pause-btn" id="logPauseBtn" onclick="toggleLogsPause()">
+                    <input type="text" class="log-filter" id="logSearch" placeholder="Search logs..." aria-label="Search system logs">
+                    <button class="log-pause-btn" id="logPauseBtn" onclick="toggleLogsPause()" aria-label="Pause log updates">
                         ⏸️ Pause
                     </button>
-                    <button class="log-clear-btn" onclick="clearLogs()">
+                    <button class="log-clear-btn" onclick="clearLogs()" aria-label="Clear all logs">
                         🗑️ Clear
                     </button>
-                    <button class="button" onclick="exportLogs()">
+                    <button class="button" onclick="exportLogs()" aria-label="Export logs to file">
                         📄 Export
                     </button>
                 </div>

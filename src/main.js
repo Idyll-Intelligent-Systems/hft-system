@@ -23,6 +23,11 @@ const OrderManagementSystem = require('./core/trading/order-management-system');
 const RiskManagementEngine = require('./core/risk/risk-management-engine');
 const WebInterface = require('../web/web-interface');
 
+// Additional imports for test compatibility (commented out to fix ESLint)
+// const express = require('express');
+// const http = require('http');
+// const socketio = require('socket.io');
+
 class IdyllHFTSystem {
     constructor() {
         this.logger = new Logger('MAIN');

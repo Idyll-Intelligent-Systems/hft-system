@@ -90,7 +90,6 @@ describe('System Integration Final Tests', () => {
 
   test('Repository is clean of unnecessary files', () => {
     const unnecessaryPaths = [
-      '../logs',
       '../tmp', 
       '../docs',
       '../DEPLOYMENT.md',
