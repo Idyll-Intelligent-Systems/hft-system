@@ -30,38 +30,65 @@ class Logger {
 
     log(level, message, data = null) {
         if (this.levels[level] <= this.currentLevel) {
-            const timestamp = new Date().toISOString();
+            const timestamp = new Date();
             const logEntry = {
-                timestamp,
+                timestamp: timestamp.toISOString(),
                 level: level.toUpperCase(),
                 module: this.module,
                 message,
                 data,
             };
 
-            // Console output with colors
-            const coloredMessage = this.colorMessage(level, logEntry);
+            // Enhanced console output with better formatting
+            const coloredMessage = this.formatConsoleMessage(level, message, data, timestamp);
             console.log(coloredMessage);
 
             // File output (async to avoid blocking)
             setImmediate(() => {
                 fs.appendFileSync(this.logFile, JSON.stringify(logEntry) + '\n');
             });
+
+            // Broadcast to web interface if available
+            this.broadcastToWebInterface(logEntry);
         }
     }
 
-    colorMessage(level, logEntry) {
+    formatConsoleMessage(level, message, data, timestamp) {
+        const time = timestamp.toLocaleTimeString();
         const colors = {
             error: '\x1b[31m', // Red
             warn: '\x1b[33m', // Yellow
             info: '\x1b[36m', // Cyan
             debug: '\x1b[90m', // Gray
+            reset: '\x1b[0m', // Reset
         };
 
-        const reset = '\x1b[0m';
-        const color = colors[level] || '';
+        const levelColor = colors[level] || colors.info;
+        const moduleColor = '\x1b[35m'; // Magenta
+        const timeColor = '\x1b[90m'; // Gray
 
-        return `${color}[${logEntry.timestamp}] [${logEntry.level}] [${logEntry.module}] ${logEntry.message}${reset}`;
+        let formattedMessage = `${timeColor}[${time}]${colors.reset} ${levelColor}${level.toUpperCase()}${colors.reset} ${moduleColor}[${this.module}]${colors.reset} ${message}`;
+
+        if (data && typeof data === 'object') {
+            formattedMessage += `\n  ${colors.reset}${JSON.stringify(data, null, 2)}`;
+        } else if (data) {
+            formattedMessage += ` ${colors.reset}${data}`;
+        }
+
+        return formattedMessage;
+    }
+
+    broadcastToWebInterface(logEntry) {
+        // This will be used by the web interface to receive real-time logs
+        if (global.webInterfaceIO) {
+            global.webInterfaceIO.emit('systemLog', {
+                timestamp: logEntry.timestamp,
+                level: logEntry.level.toLowerCase(),
+                module: logEntry.module,
+                message: logEntry.message,
+                data: logEntry.data,
+            });
+        }
     }
 
     error(message, data) {

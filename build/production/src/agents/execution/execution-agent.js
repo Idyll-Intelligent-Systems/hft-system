@@ -183,7 +183,7 @@ class ExecutionAgent extends EventEmitter {
             await new Promise(resolve => setTimeout(resolve, connection.latency / 1000));
 
             // Simulate order processing
-            const success = Math.random() > 0.02; // 98% success rate
+            const success = Math.random() > 0.005; // 99.5% success rate for better demo
 
             const sendTime = performance.now() - sendStart;
 

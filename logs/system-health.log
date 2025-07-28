@@ -1,9 +1,9 @@
 ===================================
 Idyll HFT System Health Check
 ===================================
-Timestamp: Sun Jul 27 19:33:34 UTC 2025
+Timestamp: Mon Jul 28 06:56:28 UTC 2025
 
-✅ HFT System: Running (PID: 29630)
+✅ HFT System: Running (PID: 88339)
 ❌ Web Dashboard: Not running
 ❌ MongoDB: Not running
 ❌ Redis: Not running
@@ -15,30 +15,8 @@ Service Endpoints:
 ✅ API Endpoint: http://localhost:3000/api
 
 System Resources:
-CPU Usage: 52.4%
-Memory Usage: 51.8%
-Disk Usage: 63%
-
-===================================
-===================================
-Idyll HFT System Health Check
-===================================
-Timestamp: Sun Jul 27 19:36:32 UTC 2025
-
-✅ HFT System: Running (PID: 29630)
-❌ Web Dashboard: Not running
-❌ MongoDB: Not running
-❌ Redis: Not running
-❌ InfluxDB: Not running
-✅ Kafka: Running
-
-Service Endpoints:
-✅ Web Dashboard: http://localhost:3000
-✅ API Endpoint: http://localhost:3000/api
-
-System Resources:
-CPU Usage: 47.6%
-Memory Usage: 51.7%
+CPU Usage: 65.2%
+Memory Usage: 59.9%
 Disk Usage: 63%
 
 ===================================

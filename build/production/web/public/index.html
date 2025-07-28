@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Idyll HFT System - Real-Time Dashboard</title>
+    <title>Idyll HFT System - Advanced Trading Dashboard</title>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -14,32 +15,47 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0c0c0c, #1a1a1a);
+            font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f, #1a1a24, #0d1421);
             color: #ffffff;
             overflow-x: hidden;
+            line-height: 1.5;
         }
 
         .header {
-            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            background: linear-gradient(90deg, rgba(30, 60, 114, 0.9), rgba(42, 82, 152, 0.9));
+            backdrop-filter: blur(20px);
             padding: 1rem 2rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
             position: fixed;
             width: 100%;
             top: 0;
             z-index: 1000;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
         }
 
         .header h1 {
-            display: inline-block;
             font-size: 1.8rem;
-            font-weight: 300;
+            font-weight: 600;
+            background: linear-gradient(45deg, #00d4ff, #00ff88);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
-        .header .status {
-            float: right;
+        .header-stats {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
             font-size: 0.9rem;
-            margin-top: 0.5rem;
         }
 
         .status-indicator {
@@ -56,55 +72,86 @@
         .status-critical { background: #ff4444; }
 
         @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
         }
 
-        .container {
-            margin-top: 80px;
+        .main-content {
+            margin-top: 100px;
             padding: 2rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
             max-width: 1400px;
             margin-left: auto;
             margin-right: auto;
         }
 
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
         .widget {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+            border-radius: 16px;
             padding: 1.5rem;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .widget::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            border-radius: 16px 16px 0 0;
         }
 
         .widget:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 150, 255, 0.2);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.15);
+            border-color: rgba(0, 212, 255, 0.3);
         }
 
         .widget h3 {
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
             color: #00d4ff;
-            font-weight: 500;
+            font-weight: 600;
             font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .widget-content {
+            min-height: 0; /* Fix for flexbox overflow */
         }
 
         .metric {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin: 0.8rem 0;
-            padding: 0.5rem;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 6px;
+            margin: 1rem 0;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            border-left: 3px solid rgba(0, 212, 255, 0.5);
+        }
+
+        .metric-label {
+            font-weight: 500;
+            opacity: 0.9;
         }
 
         .metric-value {
-            font-weight: bold;
+            font-weight: 700;
             font-size: 1.1rem;
         }
 
@@ -114,7 +161,12 @@
 
         .chart-container {
             grid-column: span 2;
-            height: 300px;
+            height: 400px;
+            position: relative;
+        }
+
+        .chart-wrapper {
+            height: 100%;
             position: relative;
         }
 
@@ -122,11 +174,13 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 1rem;
+            border-radius: 8px;
+            overflow: hidden;
         }
 
         .positions-table th,
         .positions-table td {
-            padding: 0.8rem;
+            padding: 1rem;
             text-align: left;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
@@ -134,7 +188,10 @@
         .positions-table th {
             background: rgba(0, 212, 255, 0.1);
             color: #00d4ff;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .positions-table tr:hover {
@@ -145,17 +202,21 @@
             background: linear-gradient(45deg, #00d4ff, #0099cc);
             border: none;
             color: white;
-            padding: 0.8rem 1.5rem;
-            border-radius: 6px;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
             cursor: pointer;
-            font-size: 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
             transition: all 0.3s ease;
-            margin: 0.5rem;
+            margin: 0.5rem 0.5rem 0.5rem 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.4);
         }
 
         .button.danger {
@@ -163,7 +224,15 @@
         }
 
         .button.danger:hover {
-            box-shadow: 0 5px 15px rgba(255, 68, 68, 0.4);
+            box-shadow: 0 8px 25px rgba(255, 68, 68, 0.4);
+        }
+
+        .button.success {
+            background: linear-gradient(45deg, #00ff88, #00cc66);
+        }
+
+        .button.success:hover {
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.4);
         }
 
         .order-form {
@@ -182,39 +251,42 @@
             margin-bottom: 0.5rem;
             color: #00d4ff;
             font-size: 0.9rem;
+            font-weight: 500;
         }
 
         .form-group input,
         .form-group select {
-            padding: 0.8rem;
+            padding: 0.75rem;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
+            border-radius: 8px;
             background: rgba(255, 255, 255, 0.05);
             color: white;
             font-size: 1rem;
+            transition: all 0.3s ease;
         }
 
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
             border-color: #00d4ff;
-            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .latency-display {
-            font-size: 2rem;
-            font-weight: bold;
+            font-size: 2.5rem;
+            font-weight: 700;
             text-align: center;
             margin: 1rem 0;
-            padding: 1rem;
+            padding: 1.5rem;
             background: linear-gradient(45deg, rgba(0, 255, 136, 0.1), rgba(0, 212, 255, 0.1));
-            border-radius: 10px;
+            border-radius: 12px;
             border: 2px solid rgba(0, 255, 136, 0.3);
         }
 
         .performance-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
             gap: 1rem;
             margin-top: 1rem;
         }
@@ -222,47 +294,424 @@
         .performance-metric {
             text-align: center;
             padding: 1rem;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .performance-metric .value {
-            font-size: 1.5rem;
-            font-weight: bold;
+            font-size: 1.8rem;
+            font-weight: 700;
             margin-bottom: 0.5rem;
         }
 
         .performance-metric .label {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .log-container {
-            max-height: 200px;
+            max-height: 400px;
             overflow-y: auto;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 6px;
-            padding: 1rem;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
         }
 
         .log-entry {
-            margin-bottom: 0.5rem;
-            padding: 0.3rem;
-            border-radius: 3px;
+            padding: 0.5rem;
+            margin-bottom: 0.3rem;
+            border-left: 3px solid #555;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.02);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+            animation: fadeInLog 0.3s ease;
         }
 
-        .log-info { border-left: 3px solid #00d4ff; }
-        .log-warning { border-left: 3px solid #ffaa00; }
-        .log-error { border-left: 3px solid #ff4444; }
-        .log-success { border-left: 3px solid #00ff88; }
+        .log-entry:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-left-color: #00d4ff;
+        }
+
+        .log-timestamp {
+            color: #888;
+            font-size: 0.75rem;
+            min-width: 80px;
+            flex-shrink: 0;
+        }
+
+        .log-level {
+            font-weight: bold;
+            min-width: 50px;
+            flex-shrink: 0;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+
+        .log-module {
+            color: #b19cd9;
+            font-size: 0.75rem;
+            min-width: 60px;
+            flex-shrink: 0;
+        }
+
+        .log-message {
+            flex: 1;
+            word-break: break-word;
+        }
+
+        .log-data {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0.3rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-top: 0.3rem;
+            overflow-x: auto;
+        }
+
+        @keyframes fadeInLog {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .log-controls {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+
+        .log-filter {
+            padding: 0.4rem 0.8rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-size: 0.85rem;
+        }
+
+        .log-clear-btn {
+            padding: 0.4rem 0.8rem;
+            background: rgba(255, 68, 68, 0.2);
+            border: 1px solid #ff4444;
+            border-radius: 4px;
+            color: #ff4444;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .log-clear-btn:hover {
+            background: rgba(255, 68, 68, 0.3);
+        }
+
+        .log-pause-btn {
+            padding: 0.4rem 0.8rem;
+            background: rgba(255, 170, 0, 0.2);
+            border: 1px solid #ffaa00;
+            border-radius: 4px;
+            color: #ffaa00;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .log-pause-btn:hover {
+            background: rgba(255, 170, 0, 0.3);
+        }
+
+        /* Responsive Design Enhancements */
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+                gap: 1.5rem;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
 
         @media (max-width: 768px) {
-            .container {
+            .dashboard-grid {
                 grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .header {
+                padding: 0.75rem 1rem;
+            }
+            
+            .header h1 {
+                font-size: 1.4rem;
+            }
+            
+            .dashboard-container {
                 padding: 1rem;
+                margin-top: 120px;
+            }
+            
+            .log-controls {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .log-filter {
+                width: 100%;
+            }
+        }
+
+        /* Enhanced animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .metric {
+            animation: slideInUp 0.3s ease;
+        }
+
+        .widget {
+            animation: slideInRight 0.4s ease;
+        }
+
+        .status-indicator.status-active {
+            animation: pulse 2s infinite;
+        }
+
+        /* Loading states */
+        .loading {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            to { left: 100%; }
+        }
+
+        /* Enhanced tooltips */
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+
+        .tooltip::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .tooltip:hover::after {
+            opacity: 1;
+        }
+
+        /* Notification System */
+        .notification {
+            background: rgba(30, 30, 30, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            min-width: 300px;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            animation: slideInNotification 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .notification::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--notification-color, #00d4ff);
+        }
+
+        .notification.success { --notification-color: #00ff88; }
+        .notification.error { --notification-color: #ff4444; }
+        .notification.warning { --notification-color: #ffaa00; }
+        .notification.info { --notification-color: #00d4ff; }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            color: var(--notification-color, #00d4ff);
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-close:hover {
+            color: #fff;
+        }
+
+        .notification-message {
+            color: #ccc;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        @keyframes slideInNotification {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOutNotification {
+            to { transform: translateX(100%); opacity: 0; }
+        }        .log-info { 
+            border-left-color: #00d4ff; 
+        }
+        .log-info .log-level { color: #00d4ff; }
+        
+        .log-warning { 
+            border-left-color: #ffaa00; 
+        }
+        .log-warning .log-level { color: #ffaa00; }
+        
+        .log-error { 
+            border-left-color: #ff4444; 
+            background: rgba(255, 68, 68, 0.05);
+        }
+        .log-error .log-level { color: #ff4444; }
+        
+        .log-success { 
+            border-left-color: #00ff88; 
+        }
+        .log-success .log-level { color: #00ff88; }
+
+        .log-debug { 
+            border-left-color: #888; 
+            opacity: 0.7;
+        }
+        .log-debug .log-level { color: #888; }
+
+        /* Demo Trading Interface */
+        .demo-section {
+            margin-top: 2rem;
+            padding: 2rem;
+            background: linear-gradient(145deg, rgba(0, 255, 136, 0.05), rgba(0, 212, 255, 0.05));
+            border-radius: 16px;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .demo-header h2 {
+            font-size: 2rem;
+            background: linear-gradient(45deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .demo-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .demo-chart {
+            height: 400px;
+            margin: 2rem 0;
+        }
+
+        .trading-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-active { background: #00ff88; }
+        .status-inactive { background: #ff4444; }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
             }
             
             .chart-container {
@@ -272,211 +721,517 @@
             .order-form {
                 grid-template-columns: 1fr;
             }
+
+            .header-stats {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .demo-controls {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, #00d4ff, #00ff88);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(45deg, #0099cc, #00cc66);
+        }
+
+        /* Loading animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #00d4ff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Market Summary Grid */
+        .market-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .market-item {
+            text-align: center;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .market-item .symbol {
+            font-weight: 700;
+            color: #00d4ff;
+            margin-bottom: 0.5rem;
+        }
+
+        .market-item .price {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .market-item .change {
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🚀 Idyll Intelligent Systems - HFT Dashboard</h1>
-        <div class="status">
-            <span class="status-indicator status-optimal" id="statusIndicator"></span>
-            <span id="systemStatus">OPTIMAL</span> | 
-            Uptime: <span id="uptime">00:00:00</span> |
-            Clients: <span id="clientCount">0</span>
+        <div class="header-content">
+            <h1>🚀 Idyll Intelligent Systems - HFT Dashboard</h1>
+            <div class="header-stats">
+                <div>
+                    <span class="status-indicator status-optimal" id="statusIndicator"></span>
+                    <span id="systemStatus">OPTIMAL</span>
+                </div>
+                <div>Uptime: <span id="uptime">00:00:00</span></div>
+                <div>Latency: <span id="headerLatency">742</span>ns</div>
+                <div>Clients: <span id="clientCount">0</span></div>
+            </div>
         </div>
     </div>
 
-    <div class="container">
+    <div class="main-content">
         <!-- Performance Metrics -->
-        <div class="widget">
-            <h3>⚡ Performance Metrics</h3>
-            <div class="latency-display">
-                <div id="latencyValue">742</div>
-                <div style="font-size: 0.8rem; opacity: 0.8;">nanoseconds</div>
+        <div class="dashboard-grid">
+            <div class="widget">
+                <h3>⚡ Performance Metrics</h3>
+                <div class="widget-content">
+                    <div class="latency-display">
+                        <div id="latencyValue">742</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8;">nanoseconds</div>
+                    </div>
+                    <div class="performance-grid">
+                        <div class="performance-metric">
+                            <div class="value positive" id="totalTrades">12,500</div>
+                            <div class="label">Total Trades</div>
+                        </div>
+                        <div class="performance-metric">
+                            <div class="value neutral" id="throughput">1.2M</div>
+                            <div class="label">Orders/sec</div>
+                        </div>
+                        <div class="performance-metric">
+                            <div class="value positive" id="uptime99">99.99%</div>
+                            <div class="label">Uptime</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="performance-grid">
-                <div class="performance-metric">
-                    <div class="value positive" id="totalTrades">12,500</div>
-                    <div class="label">Total Trades</div>
+
+            <!-- P&L and Risk -->
+            <div class="widget">
+                <h3>💰 P&L & Risk Management</h3>
+                <div class="widget-content">
+                    <div class="metric">
+                        <span class="metric-label">Daily P&L:</span>
+                        <span class="metric-value positive" id="dailyPnL">+$25,000</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Portfolio Value:</span>
+                        <span class="metric-value" id="portfolioValue">$5,000,000</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Leverage:</span>
+                        <span class="metric-value neutral" id="leverage">2.1x</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">VaR (95%):</span>
+                        <span class="metric-value" id="var95">$75,000</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Sharpe Ratio:</span>
+                        <span class="metric-value positive" id="sharpeRatio">2.4</span>
+                    </div>
                 </div>
-                <div class="performance-metric">
-                    <div class="value neutral" id="throughput">1.2M</div>
-                    <div class="label">Orders/sec</div>
+            </div>
+
+            <!-- AI Agents Status -->
+            <div class="widget">
+                <h3>🤖 AI Agents Status</h3>
+                <div class="widget-content">
+                    <div class="metric">
+                        <span class="metric-label">Strategy Agent:</span>
+                        <span class="metric-value positive">ACTIVE (98.2%)</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Risk Agent:</span>
+                        <span class="metric-value positive">ACTIVE (99.1%)</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Execution Agent:</span>
+                        <span class="metric-value positive">ACTIVE (95.8%)</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Monitoring Agent:</span>
+                        <span class="metric-value positive">ACTIVE</span>
+                    </div>
+                    <div class="trading-status">
+                        <span class="status-dot status-active" id="tradingStatusDot"></span>
+                        <span>Trading: <strong id="tradingStatusText">ACTIVE</strong></span>
+                    </div>
                 </div>
-                <div class="performance-metric">
-                    <div class="value positive" id="uptime99">99.99%</div>
-                    <div class="label">Uptime</div>
+            </div>
+
+            <!-- System Controls -->
+            <div class="widget">
+                <h3>🎛️ System Controls</h3>
+                <div class="widget-content">
+                    <button class="button success" onclick="toggleTrading()">
+                        <span id="tradingStatus">🟢 Trading Active</span>
+                    </button>
+                    <button class="button danger" onclick="emergencyStop()">
+                        🚨 Emergency Stop
+                    </button>
+                    <button class="button" onclick="refreshData()">
+                        🔄 Refresh Data
+                    </button>
+                    <button class="button" onclick="exportLogs()">
+                        📄 Export Logs
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- P&L and Risk -->
+        <!-- Market Summary -->
         <div class="widget">
-            <h3>💰 P&L & Risk Management</h3>
-            <div class="metric">
-                <span>Daily P&L:</span>
-                <span class="metric-value positive" id="dailyPnL">+$25,000</span>
+            <h3>📊 Market Summary</h3>
+            <div class="widget-content">
+                <div class="market-summary" id="marketSummary">
+                    <!-- Market data will be populated here -->
+                </div>
             </div>
-            <div class="metric">
-                <span>Portfolio Value:</span>
-                <span class="metric-value" id="portfolioValue">$5,000,000</span>
-            </div>
-            <div class="metric">
-                <span>Leverage:</span>
-                <span class="metric-value neutral" id="leverage">2.1x</span>
-            </div>
-            <div class="metric">
-                <span>VaR (95%):</span>
-                <span class="metric-value" id="var95">$75,000</span>
-            </div>
-            <div class="metric">
-                <span>Risk Level:</span>
-                <span class="metric-value positive" id="riskLevel">LOW</span>
-            </div>
-        </div>
-
-        <!-- AI Agents Status -->
-        <div class="widget">
-            <h3>🤖 AI Agents Status</h3>
-            <div class="metric">
-                <span>Strategy Agent:</span>
-                <span class="metric-value positive">ACTIVE (98% acc)</span>
-            </div>
-            <div class="metric">
-                <span>Risk Agent:</span>
-                <span class="metric-value positive">ACTIVE (99% rel)</span>
-            </div>
-            <div class="metric">
-                <span>Execution Agent:</span>
-                <span class="metric-value positive">ACTIVE (95% fill)</span>
-            </div>
-            <div class="metric">
-                <span>Monitoring Agent:</span>
-                <span class="metric-value positive">ACTIVE</span>
-            </div>
-            <div class="metric">
-                <span>Market Regime:</span>
-                <span class="metric-value neutral" id="marketRegime">NORMAL</span>
-            </div>
-        </div>
-
-        <!-- System Controls -->
-        <div class="widget">
-            <h3>🎛️ System Controls</h3>
-            <button class="button" onclick="toggleTrading()">
-                <span id="tradingStatus">🟢 Trading Active</span>
-            </button>
-            <button class="button danger" onclick="emergencyStop()">
-                🚨 Emergency Stop
-            </button>
-            <button class="button" onclick="refreshData()">
-                🔄 Refresh Data
-            </button>
-            <button class="button" onclick="exportLogs()">
-                📄 Export Logs
-            </button>
         </div>
 
         <!-- Real-time Chart -->
-        <div class="widget chart-container">
-            <h3>📊 Real-time P&L Chart</h3>
-            <canvas id="pnlChart"></canvas>
+        <div class="dashboard-grid">
+            <div class="widget chart-container">
+                <h3>📈 Real-time Trading Activity</h3>
+                <div class="chart-wrapper">
+                    <canvas id="pnlChart"></canvas>
+                </div>
+            </div>
         </div>
 
         <!-- Current Positions -->
-        <div class="widget">
-            <h3>📈 Current Positions</h3>
-            <table class="positions-table">
-                <thead>
-                    <tr>
-                        <th>Symbol</th>
-                        <th>Qty</th>
-                        <th>Avg Price</th>
-                        <th>Current</th>
-                        <th>P&L</th>
-                    </tr>
-                </thead>
-                <tbody id="positionsTableBody">
-                    <tr>
-                        <td>AAPL</td>
-                        <td>1,000</td>
-                        <td>$150.25</td>
-                        <td>$151.30</td>
-                        <td class="positive">+$1,050</td>
-                    </tr>
-                    <tr>
-                        <td>GOOGL</td>
-                        <td>500</td>
-                        <td>$2,800.00</td>
-                        <td>$2,825.50</td>
-                        <td class="positive">+$12,750</td>
-                    </tr>
-                    <tr>
-                        <td>MSFT</td>
-                        <td>750</td>
-                        <td>$380.15</td>
-                        <td>$378.90</td>
-                        <td class="negative">-$937</td>
-                    </tr>
-                </tbody>
-            </table>
+        <div class="dashboard-grid">
+            <div class="widget">
+                <h3>📈 Current Positions</h3>
+                <div class="widget-content">
+                    <table class="positions-table">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Qty</th>
+                                <th>Avg Price</th>
+                                <th>Current</th>
+                                <th>P&L</th>
+                                <th>Change %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positionsTableBody">
+                            <!-- Positions will be populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Order Entry -->
+            <div class="widget">
+                <h3>📋 Quick Order Entry</h3>
+                <div class="widget-content">
+                    <form class="order-form" onsubmit="submitOrder(event)">
+                        <div class="form-group">
+                            <label>Symbol:</label>
+                            <select id="orderSymbol" required>
+                                <option value="">Select Symbol</option>
+                                <option value="AAPL">AAPL</option>
+                                <option value="GOOGL">GOOGL</option>
+                                <option value="MSFT">MSFT</option>
+                                <option value="TSLA">TSLA</option>
+                                <option value="NVDA">NVDA</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Side:</label>
+                            <select id="orderSide" required>
+                                <option value="BUY">BUY</option>
+                                <option value="SELL">SELL</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Quantity:</label>
+                            <input type="number" id="orderQuantity" placeholder="100" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Price:</label>
+                            <input type="number" id="orderPrice" step="0.01" placeholder="0.00" required>
+                        </div>
+                        <button type="submit" class="button" style="grid-column: span 2;">Submit Order</button>
+                    </form>
+                </div>
+            </div>
         </div>
 
-        <!-- Order Entry -->
-        <div class="widget">
-            <h3>📋 Quick Order Entry</h3>
-            <form class="order-form" onsubmit="submitOrder(event)">
+        <!-- Demo Trading Section -->
+        <div class="demo-section">
+            <div class="demo-header">
+                <h2>🎮 Demo Trading Interface</h2>
+                <p>Experience our AI-powered HFT system with historical data simulation</p>
+            </div>
+            
+            <div class="demo-controls">
                 <div class="form-group">
-                    <label>Symbol:</label>
-                    <input type="text" id="orderSymbol" placeholder="AAPL" required>
-                </div>
-                <div class="form-group">
-                    <label>Side:</label>
-                    <select id="orderSide" required>
-                        <option value="BUY">BUY</option>
-                        <option value="SELL">SELL</option>
+                    <label>Select Symbol:</label>
+                    <select id="demoSymbol">
+                        <option value="AAPL">Apple Inc. (AAPL)</option>
+                        <option value="GOOGL">Alphabet Inc. (GOOGL)</option>
+                        <option value="MSFT">Microsoft Corp. (MSFT)</option>
+                        <option value="TSLA">Tesla Inc. (TSLA)</option>
+                        <option value="NVDA">NVIDIA Corp. (NVDA)</option>
                     </select>
                 </div>
+                
                 <div class="form-group">
-                    <label>Quantity:</label>
-                    <input type="number" id="orderQuantity" placeholder="100" required>
+                    <label>Trading Strategy:</label>
+                    <select id="demoStrategy">
+                        <option value="ai_dynamic">AI Dynamic (Recommended)</option>
+                        <option value="momentum">Momentum</option>
+                        <option value="mean_reversion">Mean Reversion</option>
+                        <option value="breakout">Breakout</option>
+                    </select>
                 </div>
+                
                 <div class="form-group">
-                    <label>Price:</label>
-                    <input type="number" id="orderPrice" step="0.01" placeholder="150.00" required>
+                    <label>Start Date:</label>
+                    <input type="date" id="demoStartDate" value="2023-01-01">
                 </div>
-                <button type="submit" class="button" style="grid-column: span 2;">Submit Order</button>
-            </form>
+                
+                <div class="form-group">
+                    <label>End Date:</label>
+                    <input type="date" id="demoEndDate" value="2023-12-31">
+                </div>
+                
+                <div class="form-group">
+                    <label>Initial Capital:</label>
+                    <input type="number" id="demoCapital" value="100000" step="1000">
+                </div>
+                
+                <div class="form-group">
+                    <label>Simulation Speed:</label>
+                    <select id="demoSpeed">
+                        <option value="1">1x (Real-time)</option>
+                        <option value="10">10x</option>
+                        <option value="100" selected>100x</option>
+                        <option value="1000">1000x</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin: 2rem 0;">
+                <button class="button success" onclick="startDemo()" id="startDemoBtn">
+                    🚀 Start Demo Trading
+                </button>
+                <button class="button" onclick="pauseDemo()" id="pauseDemoBtn" disabled>
+                    ⏸️ Pause
+                </button>
+                <button class="button danger" onclick="stopDemo()" id="stopDemoBtn" disabled>
+                    🛑 Stop
+                </button>
+            </div>
+            
+            <div id="demoResults" style="display: none;">
+                <div class="widget">
+                    <h3>📊 Demo Results</h3>
+                    <div class="widget-content">
+                        <div class="performance-grid">
+                            <div class="performance-metric">
+                                <div class="value" id="demoFinalValue">$100,000</div>
+                                <div class="label">Final Value</div>
+                            </div>
+                            <div class="performance-metric">
+                                <div class="value" id="demoTotalReturn">0.00%</div>
+                                <div class="label">Total Return</div>
+                            </div>
+                            <div class="performance-metric">
+                                <div class="value" id="demoTotalTrades">0</div>
+                                <div class="label">Total Trades</div>
+                            </div>
+                            <div class="performance-metric">
+                                <div class="value" id="demoWinRate">0%</div>
+                                <div class="label">Win Rate</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="widget chart-container demo-chart">
+                <h3>📈 Demo Trading Chart</h3>
+                <div class="chart-wrapper">
+                    <canvas id="demoChart"></canvas>
+                </div>
+            </div>
         </div>
 
         <!-- System Logs -->
         <div class="widget">
-            <h3>📝 System Logs</h3>
-            <div class="log-container" id="systemLogs">
-                <div class="log-entry log-success">[2024-07-27 10:30:15] System initialized successfully</div>
-                <div class="log-entry log-info">[2024-07-27 10:30:16] Connected to 4 trading venues</div>
-                <div class="log-entry log-info">[2024-07-27 10:30:17] AI agents activated</div>
-                <div class="log-entry log-success">[2024-07-27 10:30:18] Real-time data feeds active</div>
-                <div class="log-entry log-info">[2024-07-27 10:30:20] Trading strategies loaded</div>
+            <h3>📝 System Console</h3>
+            <div class="widget-content">
+                <div class="log-controls">
+                    <select class="log-filter" id="logLevelFilter">
+                        <option value="all">All Levels</option>
+                        <option value="error">Errors</option>
+                        <option value="warning">Warnings</option>
+                        <option value="info">Info</option>
+                        <option value="debug">Debug</option>
+                    </select>
+                    <input type="text" class="log-filter" id="logSearch" placeholder="Search logs...">
+                    <button class="log-pause-btn" id="logPauseBtn" onclick="toggleLogsPause()">
+                        ⏸️ Pause
+                    </button>
+                    <button class="log-clear-btn" onclick="clearLogs()">
+                        🗑️ Clear
+                    </button>
+                    <button class="button" onclick="exportLogs()">
+                        📄 Export
+                    </button>
+                </div>
+                <div class="log-container" id="systemLogs">
+                    <div class="log-entry log-success">
+                        <span class="log-timestamp">10:30:15</span>
+                        <span class="log-level">INFO</span>
+                        <span class="log-module">SYSTEM</span>
+                        <span class="log-message">HFT System initialized successfully</span>
+                    </div>
+                    <div class="log-entry log-info">
+                        <span class="log-timestamp">10:30:16</span>
+                        <span class="log-level">INFO</span>
+                        <span class="log-module">DATA</span>
+                        <span class="log-message">Real-world data provider connected</span>
+                    </div>
+                    <div class="log-entry log-info">
+                        <span class="log-timestamp">10:30:17</span>
+                        <span class="log-level">INFO</span>
+                        <span class="log-module">AI</span>
+                        <span class="log-message">AI agents activated with enhanced models</span>
+                    </div>
+                    <div class="log-entry log-success">
+                        <span class="log-timestamp">10:30:18</span>
+                        <span class="log-level">INFO</span>
+                        <span class="log-module">TRADING</span>
+                        <span class="log-message">Demo trading interface ready</span>
+                    </div>
+                    <div class="log-entry log-info">
+                        <span class="log-timestamp">10:30:20</span>
+                        <span class="log-level">INFO</span>
+                        <span class="log-module">STRATEGY</span>
+                        <span class="log-message">Advanced trading strategies loaded</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Notification Container -->
+    <div id="notificationContainer" style="position: fixed; top: 80px; right: 20px; z-index: 10000;"></div>
+
     <script>
-        // Initialize Socket.IO connection
+        // Global variables
         const socket = io();
         let tradingActive = true;
-        let chart;
+        let mainChart, demoChart;
+        let currentDemoSession = null;
+        let marketData = {};
 
-        // Initialize P&L chart
-        function initChart() {
-            const ctx = document.getElementById('pnlChart').getContext('2d');
-            chart = new Chart(ctx, {
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeCharts();
+            loadMarketSummary();
+            loadPositions();
+            
+            // Update metrics every 2 seconds
+            setInterval(refreshData, 2000);
+            
+            // Update charts every 5 seconds
+            setInterval(updateMainChart, 5000);
+            
+            // Update uptime display
+            setInterval(updateUptime, 1000);
+        });
+
+        // Socket event handlers
+        socket.on('connect', () => {
+            addLog('Connected to HFT system', 'success');
+        });
+
+        socket.on('systemUpdate', (data) => {
+            updateSystemMetrics(data);
+        });
+
+        socket.on('marketData', (data) => {
+            updateMarketData(data);
+        });
+
+        socket.on('tradeExecution', (trade) => {
+            addLog(`Trade: ${trade.side} ${trade.quantity} ${trade.symbol} @ $${trade.price}`, 'success');
+            updateMainChart();
+        });
+
+        socket.on('newOrder', (order) => {
+            addLog(`Order: ${order.side} ${order.quantity} ${order.symbol} @ $${order.price}`, 'info');
+        });
+
+        socket.on('emergencyStop', () => {
+            addLog('EMERGENCY STOP ACTIVATED', 'error');
+            tradingActive = false;
+            updateTradingStatus();
+        });
+
+        socket.on('demoTick', (data) => {
+            updateDemoDisplay(data);
+        });
+
+        socket.on('demoTrade', (data) => {
+            addLog(`Demo Trade: ${data.trade.action} ${data.trade.quantity} ${data.trade.symbol}`, 'info');
+        });
+
+        socket.on('sessionCompleted', (data) => {
+            completeDemoSession(data.session);
+        });
+
+        // Initialize charts
+        function initializeCharts() {
+            // Main P&L Chart
+            const ctx1 = document.getElementById('pnlChart').getContext('2d');
+            mainChart = new Chart(ctx1, {
                 type: 'line',
                 data: {
                     labels: [],
                     datasets: [{
-                        label: 'Daily P&L',
+                        label: 'Portfolio Value',
                         data: [],
                         borderColor: '#00ff88',
                         backgroundColor: 'rgba(0, 255, 136, 0.1)',
@@ -487,6 +1242,10 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
                     plugins: {
                         legend: {
                             labels: { color: 'white' }
@@ -498,73 +1257,208 @@
                             grid: { color: 'rgba(255,255,255,0.1)' }
                         },
                         y: {
-                            ticks: { color: 'white' },
+                            ticks: { 
+                                color: 'white',
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            },
                             grid: { color: 'rgba(255,255,255,0.1)' }
                         }
                     }
                 }
             });
 
-            // Add sample data
-            updateChart();
+            // Demo Chart
+            const ctx2 = document.getElementById('demoChart').getContext('2d');
+            demoChart = new Chart(ctx2, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Stock Price',
+                        data: [],
+                        borderColor: '#00d4ff',
+                        backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                        tension: 0.4,
+                        yAxisID: 'y'
+                    }, {
+                        label: 'Portfolio Value',
+                        data: [],
+                        borderColor: '#00ff88',
+                        backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: 'white' }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: 'white' },
+                            grid: { color: 'rgba(255,255,255,0.1)' }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            ticks: { 
+                                color: '#00d4ff',
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            },
+                            grid: { color: 'rgba(0, 212, 255, 0.1)' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            ticks: { 
+                                color: '#00ff88',
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
         }
 
-        function updateChart() {
+        function updateMainChart() {
             const now = new Date();
             const timeLabel = now.toLocaleTimeString();
-            const pnl = 25000 + (Math.random() - 0.5) * 5000;
+            const portfolioValue = 5000000 + (Math.random() - 0.5) * 100000;
 
-            if (chart.data.labels.length > 20) {
-                chart.data.labels.shift();
-                chart.data.datasets[0].data.shift();
+            if (mainChart.data.labels.length > 50) {
+                mainChart.data.labels.shift();
+                mainChart.data.datasets[0].data.shift();
             }
 
-            chart.data.labels.push(timeLabel);
-            chart.data.datasets[0].data.push(pnl);
-            chart.update('none');
+            mainChart.data.labels.push(timeLabel);
+            mainChart.data.datasets[0].data.push(portfolioValue);
+            mainChart.update('none');
         }
 
-        // Socket event handlers
-        socket.on('connect', () => {
-            addLog('Connected to HFT system', 'success');
-        });
-
-        socket.on('systemUpdate', (data) => {
-            updateSystemMetrics(data);
-        });
-
-        socket.on('newOrder', (order) => {
-            addLog(`New order: ${order.side} ${order.quantity} ${order.symbol} @ $${order.price}`, 'info');
-        });
-
-        socket.on('tradeExecution', (trade) => {
-            addLog(`Trade executed: ${trade.symbol} - P&L: $${trade.pnl}`, 'success');
-            updateChart();
-        });
-
-        socket.on('riskAlert', (alert) => {
-            addLog(`Risk Alert: ${alert.message}`, 'warning');
-        });
-
-        socket.on('emergencyStop', () => {
-            addLog('EMERGENCY STOP ACTIVATED', 'error');
-            tradingActive = false;
-            updateTradingStatus();
-        });
-
-        // UI Functions
         function updateSystemMetrics(data) {
             if (data.totalTrades) document.getElementById('totalTrades').textContent = data.totalTrades.toLocaleString();
-            if (data.dailyPnL) document.getElementById('dailyPnL').textContent = formatCurrency(data.dailyPnL);
-            if (data.averageLatency) document.getElementById('latencyValue').textContent = Math.round(data.averageLatency);
+            if (data.dailyPnL !== undefined) {
+                const pnlElement = document.getElementById('dailyPnL');
+                pnlElement.textContent = formatCurrency(data.dailyPnL);
+                pnlElement.className = `metric-value ${data.dailyPnL >= 0 ? 'positive' : 'negative'}`;
+            }
+            if (data.averageLatency) {
+                document.getElementById('latencyValue').textContent = Math.round(data.averageLatency);
+                document.getElementById('headerLatency').textContent = Math.round(data.averageLatency);
+            }
             
             // Update status indicator
             const indicator = document.getElementById('statusIndicator');
             const statusText = document.getElementById('systemStatus');
             
-            if (data.health) {
-                indicator.className = `status-indicator status-${data.health.toLowerCase()}`;
-                statusText.textContent = data.health;
+            if (data.systemHealth) {
+                indicator.className = `status-indicator status-${data.systemHealth.toLowerCase()}`;
+                statusText.textContent = data.systemHealth;
+            }
+
+            if (data.connectedClients !== undefined) {
+                document.getElementById('clientCount').textContent = data.connectedClients;
+            }
+        }
+
+        async function loadMarketSummary() {
+            try {
+                const response = await fetch('/api/market/summary');
+                const data = await response.json();
+                
+                const summaryContainer = document.getElementById('marketSummary');
+                summaryContainer.innerHTML = '';
+                
+                for (const [symbol, info] of Object.entries(data)) {
+                    const item = document.createElement('div');
+                    item.className = 'market-item';
+                    
+                    const changeClass = info.change >= 0 ? 'positive' : 'negative';
+                    const changeSymbol = info.change >= 0 ? '+' : '';
+                    
+                    item.innerHTML = `
+                        <div class="symbol">${symbol}</div>
+                        <div class="price">$${info.price.toFixed(2)}</div>
+                        <div class="change ${changeClass}">
+                            ${changeSymbol}${info.change.toFixed(2)} (${info.changePercent.toFixed(2)}%)
+                        </div>
+                    `;
+                    
+                    summaryContainer.appendChild(item);
+                    marketData[symbol] = info;
+                }
+                
+                // Update order form with current prices
+                updateOrderFormPrices();
+                
+            } catch (error) {
+                console.error('Failed to load market summary:', error);
+            }
+        }
+
+        function updateOrderFormPrices() {
+            const symbolSelect = document.getElementById('orderSymbol');
+            const priceInput = document.getElementById('orderPrice');
+            
+            symbolSelect.addEventListener('change', () => {
+                const selectedSymbol = symbolSelect.value;
+                if (selectedSymbol && marketData[selectedSymbol]) {
+                    priceInput.value = marketData[selectedSymbol].price.toFixed(2);
+                }
+            });
+        }
+
+        async function loadPositions() {
+            try {
+                const response = await fetch('/api/positions');
+                const positions = await response.json();
+                
+                const tbody = document.getElementById('positionsTableBody');
+                tbody.innerHTML = '';
+                
+                positions.forEach(position => {
+                    const row = document.createElement('tr');
+                    const changeClass = position.pnl >= 0 ? 'positive' : 'negative';
+                    const changeSymbol = position.pnl >= 0 ? '+' : '';
+                    
+                    row.innerHTML = `
+                        <td><strong>${position.symbol}</strong></td>
+                        <td>${position.quantity.toLocaleString()}</td>
+                        <td>$${position.avgPrice.toFixed(2)}</td>
+                        <td>$${position.currentPrice.toFixed(2)}</td>
+                        <td class="${changeClass}">${changeSymbol}$${position.pnl.toFixed(0)}</td>
+                        <td class="${changeClass}">${changeSymbol}${position.changePercent?.toFixed(2) || '0.00'}%</td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+                
+            } catch (error) {
+                console.error('Failed to load positions:', error);
+            }
+        }
+
+        function updateMarketData(data) {
+            if (marketData[data.symbol]) {
+                marketData[data.symbol] = { ...marketData[data.symbol], ...data };
+                loadMarketSummary(); // Refresh display
             }
         }
 
@@ -573,74 +1467,253 @@
             return sign + '$' + amount.toLocaleString();
         }
 
-        function addLog(message, type = 'info') {
+        // Enhanced logging system
+        let logsPaused = false;
+        let logBuffer = [];
+
+        function addLog(message, type = 'info', module = 'SYSTEM', data = null) {
+            if (logsPaused) {
+                logBuffer.push({ message, type, module, data, timestamp: new Date() });
+                return;
+            }
+
             const logContainer = document.getElementById('systemLogs');
-            const timestamp = new Date().toLocaleTimeString();
+            const timestamp = new Date();
             const logEntry = document.createElement('div');
             logEntry.className = `log-entry log-${type}`;
-            logEntry.textContent = `[${timestamp}] ${message}`;
             
-            logContainer.insertBefore(logEntry, logContainer.firstChild);
+            // Create structured log entry
+            logEntry.innerHTML = `
+                <span class="log-timestamp">${timestamp.toLocaleTimeString()}</span>
+                <span class="log-level">${type.toUpperCase()}</span>
+                <span class="log-module">${module}</span>
+                <span class="log-message">${message}</span>
+                ${data ? `<div class="log-data">${typeof data === 'object' ? JSON.stringify(data, null, 2) : data}</div>` : ''}
+            `;
             
-            // Keep only last 50 entries
-            while (logContainer.children.length > 50) {
+            // Apply current filters
+            if (shouldShowLog(logEntry)) {
+                logContainer.insertBefore(logEntry, logContainer.firstChild);
+            }
+            
+            // Keep only last 200 entries
+            while (logContainer.children.length > 200) {
                 logContainer.removeChild(logContainer.lastChild);
+            }
+
+            // Auto-scroll to top for new entries
+            logContainer.scrollTop = 0;
+        }
+
+        function shouldShowLog(logEntry) {
+            const levelFilter = document.getElementById('logLevelFilter').value;
+            const searchFilter = document.getElementById('logSearch').value.toLowerCase();
+            
+            const logLevel = logEntry.querySelector('.log-level').textContent.toLowerCase();
+            const logText = logEntry.textContent.toLowerCase();
+            
+            // Check level filter
+            if (levelFilter !== 'all' && !logLevel.includes(levelFilter)) {
+                return false;
+            }
+            
+            // Check search filter
+            if (searchFilter && !logText.includes(searchFilter)) {
+                return false;
+            }
+            
+            return true;
+        }
+
+        function toggleLogsPause() {
+            const btn = document.getElementById('logPauseBtn');
+            logsPaused = !logsPaused;
+            
+            if (logsPaused) {
+                btn.textContent = '▶️ Resume';
+                btn.classList.add('paused');
+            } else {
+                btn.textContent = '⏸️ Pause';
+                btn.classList.remove('paused');
+                
+                // Process buffered logs
+                logBuffer.forEach(log => {
+                    addLog(log.message, log.type, log.module, log.data);
+                });
+                logBuffer = [];
             }
         }
 
+        function clearLogs() {
+            if (confirm('Clear all logs?')) {
+                document.getElementById('systemLogs').innerHTML = '';
+                logBuffer = [];
+            }
+        }
+
+        function filterLogs() {
+            const logContainer = document.getElementById('systemLogs');
+            const entries = Array.from(logContainer.children);
+            
+            entries.forEach(entry => {
+                if (shouldShowLog(entry)) {
+                    entry.style.display = 'flex';
+                } else {
+                    entry.style.display = 'none';
+                }
+            });
+        }
+
+        // Socket event handlers for real-time logs
+        socket.on('systemLog', (logData) => {
+            addLog(logData.message, logData.level, logData.module, logData.data);
+        });
+
+        // Notification System
+        function showNotification(title, message, type = 'info', duration = 5000) {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            notification.innerHTML = `
+                <div class="notification-header">
+                    <div class="notification-title">${title}</div>
+                    <button class="notification-close" onclick="closeNotification(this)">×</button>
+                </div>
+                <div class="notification-message">${message}</div>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Auto-remove after duration
+            if (duration > 0) {
+                setTimeout(() => {
+                    closeNotification(notification.querySelector('.notification-close'));
+                }, duration);
+            }
+            
+            return notification;
+        }
+
+        function closeNotification(closeBtn) {
+            const notification = closeBtn.closest('.notification');
+            notification.style.animation = 'slideOutNotification 0.3s ease';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }
+
+        // Enhanced error handling wrapper
+        function handleApiCall(apiCall, successMessage, errorMessage) {
+            return apiCall
+                .then(response => {
+                    if (response.ok) {
+                        if (successMessage) {
+                            showNotification('Success', successMessage, 'success');
+                        }
+                        return response.json();
+                    } else {
+                        throw new Error(`API call failed: ${response.status}`);
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                    showNotification('Error', errorMessage || error.message, 'error');
+                    throw error;
+                });
+        }
+
         function toggleTrading() {
-            tradingActive = !tradingActive;
-            updateTradingStatus();
-            addLog(`Trading ${tradingActive ? 'activated' : 'deactivated'}`, tradingActive ? 'success' : 'warning');
+            handleApiCall(
+                fetch('/api/trading/toggle', { method: 'POST' }),
+                null,
+                'Failed to toggle trading status'
+            ).then(data => {
+                tradingActive = data.active;
+                updateTradingStatus();
+                addLog(`Trading ${tradingActive ? 'activated' : 'deactivated'}`, tradingActive ? 'success' : 'warning');
+                showNotification(
+                    'Trading Status', 
+                    `Trading has been ${tradingActive ? 'activated' : 'deactivated'}`, 
+                    tradingActive ? 'success' : 'warning'
+                );
+            }).catch(() => {
+                // Error already handled by handleApiCall
+            });
         }
 
         function updateTradingStatus() {
             const statusElement = document.getElementById('tradingStatus');
-            statusElement.textContent = tradingActive ? '🟢 Trading Active' : '🔴 Trading Stopped';
+            const dotElement = document.getElementById('tradingStatusDot');
+            const textElement = document.getElementById('tradingStatusText');
+            
+            if (tradingActive) {
+                statusElement.textContent = '🟢 Trading Active';
+                dotElement.className = 'status-dot status-active';
+                textElement.textContent = 'ACTIVE';
+            } else {
+                statusElement.textContent = '🔴 Trading Stopped';
+                dotElement.className = 'status-dot status-inactive';
+                textElement.textContent = 'STOPPED';
+            }
         }
 
         function emergencyStop() {
             if (confirm('Are you sure you want to activate Emergency Stop? This will halt all trading operations.')) {
-                fetch('/api/emergency-stop', { method: 'POST' })
-                    .then(response => response.json())
-                    .then(data => {
-                        addLog('Emergency stop request sent', 'error');
-                    });
+                handleApiCall(
+                    fetch('/api/emergency-stop', { method: 'POST' }),
+                    'Emergency stop activated successfully',
+                    'Failed to activate emergency stop'
+                ).then(data => {
+                    addLog('Emergency stop request sent', 'error');
+                    showNotification('Emergency Stop', 'All trading operations have been halted', 'error', 0);
+                }).catch(() => {
+                    // Error already handled by handleApiCall
+                });
             }
         }
 
-        function submitOrder(event) {
+        async function submitOrder(event) {
             event.preventDefault();
             
             const orderData = {
                 symbol: document.getElementById('orderSymbol').value,
                 side: document.getElementById('orderSide').value,
                 quantity: parseInt(document.getElementById('orderQuantity').value),
-                price: parseFloat(document.getElementById('orderPrice').value)
+                price: parseFloat(document.getElementById('orderPrice').value),
+                orderType: 'LIMIT'
             };
 
-            fetch('/api/orders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData)
-            })
-            .then(response => response.json())
-            .then(data => {
+            try {
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData)
+                });
+                
+                const data = await response.json();
                 addLog(`Order submitted: ${data.id}`, 'success');
                 event.target.reset();
-            })
-            .catch(error => {
+                
+                // Refresh positions after order
+                setTimeout(loadPositions, 1000);
+                
+            } catch (error) {
                 addLog(`Order failed: ${error.message}`, 'error');
-            });
+            }
         }
 
-        function refreshData() {
-            fetch('/api/metrics')
-                .then(response => response.json())
-                .then(data => {
-                    updateSystemMetrics(data);
-                    addLog('Data refreshed', 'info');
-                });
+        async function refreshData() {
+            try {
+                const response = await fetch('/api/metrics');
+                const data = await response.json();
+                updateSystemMetrics(data);
+                addLog('Data refreshed', 'info');
+            } catch (error) {
+                console.error('Failed to refresh data:', error);
+            }
         }
 
         function exportLogs() {
@@ -652,30 +1725,203 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `hft-logs-${new Date().toISOString()}.txt`;
+            a.download = `hft-logs-${new Date().toISOString().split('T')[0]}.txt`;
             a.click();
             URL.revokeObjectURL(url);
         }
 
-        // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', () => {
-            initChart();
-            
-            // Update metrics every 5 seconds
-            setInterval(refreshData, 5000);
-            
-            // Update chart every 2 seconds
-            setInterval(updateChart, 2000);
-            
-            // Update uptime display
-            setInterval(() => {
+        function updateUptime() {
+            const uptimeElement = document.getElementById('uptime');
+            if (uptimeElement) {
                 const uptime = performance.now() / 1000;
                 const hours = Math.floor(uptime / 3600);
                 const minutes = Math.floor((uptime % 3600) / 60);
                 const seconds = Math.floor(uptime % 60);
-                document.getElementById('uptime').textContent = 
+                uptimeElement.textContent = 
                     `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            }, 1000);
+            }
+        }
+
+        // Demo Trading Functions
+        async function startDemo() {
+            const config = {
+                symbol: document.getElementById('demoSymbol').value,
+                strategy: document.getElementById('demoStrategy').value,
+                startDate: document.getElementById('demoStartDate').value,
+                endDate: document.getElementById('demoEndDate').value,
+                initialCapital: parseInt(document.getElementById('demoCapital').value),
+                speed: parseInt(document.getElementById('demoSpeed').value)
+            };
+
+            try {
+                // Create demo session
+                const response = await fetch('/api/demo/session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                const session = await response.json();
+                currentDemoSession = session.id;
+                
+                // Start the session
+                const startResponse = await fetch(`/api/demo/session/${session.id}/start`, {
+                    method: 'POST'
+                });
+                
+                if (startResponse.ok) {
+                    // Update UI
+                    document.getElementById('startDemoBtn').disabled = true;
+                    document.getElementById('pauseDemoBtn').disabled = false;
+                    document.getElementById('stopDemoBtn').disabled = false;
+                    
+                    // Subscribe to session updates
+                    socket.emit('subscribeToSession', session.id);
+                    
+                    addLog(`Demo trading started: ${config.symbol} (${config.strategy})`, 'success');
+                    
+                    // Clear demo chart
+                    demoChart.data.labels = [];
+                    demoChart.data.datasets[0].data = [];
+                    demoChart.data.datasets[1].data = [];
+                    demoChart.update();
+                }
+                
+            } catch (error) {
+                addLog(`Failed to start demo: ${error.message}`, 'error');
+            }
+        }
+
+        async function pauseDemo() {
+            if (!currentDemoSession) return;
+            
+            try {
+                await fetch(`/api/demo/session/${currentDemoSession}/pause`, { method: 'POST' });
+                addLog('Demo trading paused', 'warning');
+                
+                document.getElementById('pauseDemoBtn').textContent = '▶️ Resume';
+                document.getElementById('pauseDemoBtn').onclick = resumeDemo;
+                
+            } catch (error) {
+                addLog(`Failed to pause demo: ${error.message}`, 'error');
+            }
+        }
+
+        async function resumeDemo() {
+            if (!currentDemoSession) return;
+            
+            try {
+                await fetch(`/api/demo/session/${currentDemoSession}/start`, { method: 'POST' });
+                addLog('Demo trading resumed', 'success');
+                
+                document.getElementById('pauseDemoBtn').textContent = '⏸️ Pause';
+                document.getElementById('pauseDemoBtn').onclick = pauseDemo;
+                
+            } catch (error) {
+                addLog(`Failed to resume demo: ${error.message}`, 'error');
+            }
+        }
+
+        async function stopDemo() {
+            if (!currentDemoSession) return;
+            
+            try {
+                await fetch(`/api/demo/session/${currentDemoSession}/stop`, { method: 'POST' });
+                socket.emit('unsubscribeFromSession', currentDemoSession);
+                
+                resetDemoUI();
+                addLog('Demo trading stopped', 'warning');
+                
+            } catch (error) {
+                addLog(`Failed to stop demo: ${error.message}`, 'error');
+            }
+        }
+
+        function updateDemoDisplay(data) {
+            // Update demo chart
+            const timestamp = new Date(data.tickData.timestamp).toLocaleTimeString();
+            
+            // Limit data points to prevent performance issues
+            if (demoChart.data.labels.length > 200) {
+                demoChart.data.labels.shift();
+                demoChart.data.datasets[0].data.shift();
+                demoChart.data.datasets[1].data.shift();
+            }
+            
+            demoChart.data.labels.push(timestamp);
+            demoChart.data.datasets[0].data.push(data.tickData.price);
+            demoChart.data.datasets[1].data.push(data.portfolio.totalValue);
+            demoChart.update('none');
+            
+            // Update live metrics
+            if (data.metrics) {
+                const totalReturn = ((data.portfolio.totalValue - parseInt(document.getElementById('demoCapital').value)) / parseInt(document.getElementById('demoCapital').value)) * 100;
+                
+                document.getElementById('demoFinalValue').textContent = '$' + data.portfolio.totalValue.toLocaleString();
+                document.getElementById('demoTotalReturn').textContent = totalReturn.toFixed(2) + '%';
+                document.getElementById('demoTotalReturn').className = `value ${totalReturn >= 0 ? 'positive' : 'negative'}`;
+                document.getElementById('demoTotalTrades').textContent = data.metrics.totalTrades;
+                
+                const winRate = data.metrics.totalTrades > 0 ? 
+                    Math.round((data.metrics.winningTrades / data.metrics.totalTrades) * 100) : 0;
+                document.getElementById('demoWinRate').textContent = winRate + '%';
+                
+                document.getElementById('demoResults').style.display = 'block';
+            }
+        }
+
+        function completeDemoSession(session) {
+            resetDemoUI();
+            
+            addLog(`Demo completed: ${session.state.metrics.totalPnL > 0 ? '+' : ''}$${session.state.metrics.totalPnL.toFixed(2)}`, 'success');
+            
+            // Show final results
+            document.getElementById('demoResults').style.display = 'block';
+        }
+
+        function resetDemoUI() {
+            document.getElementById('startDemoBtn').disabled = false;
+            document.getElementById('pauseDemoBtn').disabled = true;
+            document.getElementById('stopDemoBtn').disabled = true;
+            document.getElementById('pauseDemoBtn').textContent = '⏸️ Pause';
+            document.getElementById('pauseDemoBtn').onclick = pauseDemo;
+            currentDemoSession = null;
+        }
+
+        // Initialize data on load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMarketSummary();
+            loadPositions();
+            
+            // Setup log filter event listeners
+            document.getElementById('logLevelFilter').addEventListener('change', filterLogs);
+            document.getElementById('logSearch').addEventListener('input', filterLogs);
+            
+            // Subscribe to real-time logs
+            socket.emit('subscribeLogs');
+            
+            // Connection status handling
+            socket.on('connect', () => {
+                showNotification('Connected', 'Connected to HFT System', 'success', 3000);
+                addLog('WebSocket connection established', 'success', 'SYSTEM');
+            });
+
+            socket.on('disconnect', () => {
+                showNotification('Disconnected', 'Connection to HFT System lost', 'error', 0);
+                addLog('WebSocket connection lost', 'error', 'SYSTEM');
+            });
+
+            socket.on('reconnect', () => {
+                showNotification('Reconnected', 'Connection to HFT System restored', 'success', 3000);
+                addLog('WebSocket connection restored', 'success', 'SYSTEM');
+            });
+            
+            // Welcome message
+            setTimeout(() => {
+                addLog('HFT System Dashboard loaded successfully', 'success', 'UI');
+                addLog('Real-time monitoring active', 'info', 'SYSTEM');
+                showNotification('Dashboard Ready', 'HFT System Dashboard is now active', 'info', 4000);
+            }, 500);
         });
     </script>
 </body>

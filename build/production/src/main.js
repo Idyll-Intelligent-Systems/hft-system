@@ -96,15 +96,28 @@ class IdyllHFTSystem {
     async initializeInfrastructure() {
         this.logger.info('🏗️ Initializing ultra-low latency infrastructure...');
 
-        // Initialize market data manager
+        // Initialize market data manager with real-world data
         this.marketDataManager = new MarketDataManager({
             exchanges: this.config.get('exchanges'),
             latencyTarget: 50, // nanoseconds
             throughputTarget: 10000000, // messages per second
+            realWorldData: true,
+            symbols: ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN', 'META'],
         });
 
         await this.marketDataManager.initialize();
         this.components.set('marketData', this.marketDataManager);
+
+        // Initialize demo trading interface
+        const DemoTradingInterface = require('./infrastructure/demo-trading-interface');
+        this.demoTradingInterface = new DemoTradingInterface({
+            initialCapital: 100000,
+            symbols: ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA'],
+            strategies: ['ai_dynamic', 'momentum', 'mean_reversion', 'breakout'],
+        });
+
+        await this.demoTradingInterface.initialize(this.marketDataManager, null);
+        this.components.set('demoTrading', this.demoTradingInterface);
 
         // Initialize ultra-low latency engine
         this.ultraLowLatencyEngine = new UltraLowLatencyEngine({
@@ -116,7 +129,7 @@ class IdyllHFTSystem {
         await this.ultraLowLatencyEngine.initialize();
         this.components.set('lowLatencyEngine', this.ultraLowLatencyEngine);
 
-        this.logger.info('✅ Infrastructure initialized');
+        this.logger.info('✅ Infrastructure initialized with real-world data and demo trading');
     }
 
     async initializeTradingComponents() {
@@ -166,7 +179,7 @@ class IdyllHFTSystem {
     }
 
     async initializeWebInterface() {
-        this.logger.info('🌐 Initializing web interface...');
+        this.logger.info('🌐 Initializing enhanced web interface...');
 
         this.webInterface = new WebInterface({
             port: this.config.get('webPort', 3000),
@@ -175,10 +188,18 @@ class IdyllHFTSystem {
             tradingInterface: true,
         });
 
-        await this.webInterface.initialize();
+        // Pass system components to web interface
+        const systemComponents = {
+            marketDataManager: this.marketDataManager,
+            demoTradingInterface: this.demoTradingInterface,
+            aiOrchestrator: this.aiOrchestrator,
+            systemHealth: this.systemHealth,
+        };
+
+        await this.webInterface.initialize(systemComponents);
         this.components.set('webInterface', this.webInterface);
 
-        this.logger.info('✅ Web interface initialized');
+        this.logger.info('✅ Enhanced web interface initialized with demo trading capabilities');
     }
 
     async startSystemMonitoring() {

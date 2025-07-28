@@ -147,11 +147,22 @@ class StrategyAgent extends EventEmitter {
             );
         }
 
+        // Select a random symbol for simulation
+        const symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN', 'META'];
+        const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+
+        // Calculate suggested quantity based on confidence
+        const baseQuantity = 100;
+        const suggestedQuantity = Math.floor(baseQuantity * confidence * (1 + Math.random() * 2));
+
         return {
             action: signal > 0 ? 'BUY' : signal < 0 ? 'SELL' : 'HOLD',
             confidence: confidence,
             signal: signal,
             strategy: 'momentum',
+            symbol: symbol,
+            suggestedQuantity: suggestedQuantity,
+            riskScore: Math.max(0.1, 1 - confidence), // Higher risk when confidence is lower
             features: features,
         };
     }
@@ -170,11 +181,22 @@ class StrategyAgent extends EventEmitter {
             confidence = Math.min(0.85, bollinger_position + Math.abs(rsi_divergence));
         }
 
+        // Select a random symbol for simulation
+        const symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN', 'META'];
+        const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+
+        // Calculate suggested quantity based on confidence
+        const baseQuantity = 150;
+        const suggestedQuantity = Math.floor(baseQuantity * confidence * (1 + Math.random() * 1.5));
+
         return {
             action: signal > 0 ? 'BUY' : signal < 0 ? 'SELL' : 'HOLD',
             confidence: confidence,
             signal: signal,
             strategy: 'mean_reversion',
+            symbol: symbol,
+            suggestedQuantity: suggestedQuantity,
+            riskScore: Math.max(0.15, 1 - confidence),
             features: features,
         };
     }
@@ -191,11 +213,22 @@ class StrategyAgent extends EventEmitter {
             confidence = Math.min(0.95, price_spread * 1000 * latency_edge);
         }
 
+        // Select a random symbol for simulation
+        const symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN', 'META'];
+        const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+
+        // Calculate suggested quantity based on spread and confidence
+        const baseQuantity = 200;
+        const suggestedQuantity = Math.floor(baseQuantity * confidence * (1 + price_spread * 1000));
+
         return {
             action: signal > 0 ? 'BUY' : signal < 0 ? 'SELL' : 'HOLD',
             confidence: confidence,
             signal: signal,
             strategy: 'arbitrage',
+            symbol: symbol,
+            suggestedQuantity: suggestedQuantity,
+            riskScore: Math.max(0.05, 1 - confidence * latency_edge),
             features: features,
             spread: price_spread,
         };
@@ -219,11 +252,24 @@ class StrategyAgent extends EventEmitter {
             }
         }
 
+        // Select a random symbol for simulation
+        const symbols = ['AAPL', 'GOOGL', 'MSFT', 'TSLA', 'NVDA', 'AMZN', 'META'];
+        const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+
+        // Calculate suggested quantity based on spread and confidence
+        const baseQuantity = 50; // Smaller quantities for market making
+        const suggestedQuantity = Math.floor(
+            baseQuantity * confidence * (1 + bid_ask_spread * 5000)
+        );
+
         return {
             action: signal > 0 ? 'BUY' : signal < 0 ? 'SELL' : 'HOLD',
             confidence: confidence,
             signal: signal,
             strategy: 'market_making',
+            symbol: symbol,
+            suggestedQuantity: suggestedQuantity,
+            riskScore: Math.max(0.2, Math.abs(inventory) * 0.5 + (1 - confidence)),
             features: features,
             inventory: inventory,
         };
