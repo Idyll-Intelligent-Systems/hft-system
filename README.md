@@ -1,20 +1,4 @@
-# Initial Problem and Requirements for Idyll Intelligent Systems/automated-hft:
-1. Find all the research available on HFT, Agentic AI, Performance optimising algorithms and datastructures, parallel computing, compilers, operating systems, computer networks, llms, machine learning algorithms, deep learning, cpu and gpu accelaration, nano second trading technologies, finance and probability statistics, money making strategies in HFT, optimised frontend or UI/UX framework or language for rendering visual graphs and executing trades in realtime without any perceivable latency. Get good grip on all the domains and you should be an expert in each domain.
-2. First explain all the above domains and help me write and develop an automated end to end nano second high frequency trading company from scratch. This system should be able to manage by owners and agentic ai for deployments, strategy planning, monitoring, alerts, bug fix, new requirement analyst, solution provider, code executioner and code generator.
-3. This system can be interacted by users, owners, agentic ai, llms, deep learning models, other companies via api/web-ui and all the relevant IO interactions
-4. Explain all the components involved in our nano second autonomous hft system and help me build a production ready system from scratch. Write a SRS document with all the components and UML diagrams for better understanding,system flow, technology stack, thesis paper, ppt slides for explaining the system in laymen terms, investor pitch slides with best visual images for better understanding
-5. Please help me understand the value of my company, investment to build the company from scratch and how to price the customers.
-6. My company should be user facing, business client facing and enterprize grade competive hft.
-7. Use smart and hardwork based approach to tackle this problem and make a profitable company from scratch.
-8. Trading can be performed in any region stock exchange, crypto exchange, mfs etc. that is all global markets should be available to trade in our system
-9. Create this end to end nano second automated HFT system with structured, clean and expandable code.
-10. Test this system with recent 2020-2024 data in two phases, covid and normal phase seperatly to showcase reliability and robustness of our system, show this as an interaction test in our web ui for demo purposes.
-11. Dont update this readme file, follow all the above 10 steps with atmost perfection and use expert level understanding to tackle and solve the problem
-
-
-
-
-# Initial Research Report and Development Plan:
+# Initial Stage Plan
 # Idyll Intelligent Systems - Complete HFT Company Development Package
 
 ## Table of Contents
